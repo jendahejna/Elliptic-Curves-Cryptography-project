@@ -112,11 +112,11 @@ def main():
 
     alice_shared_key, bob_shared_key = approve_ecdh_keys_demo(alice_priv_key, alice_pub_key, bob_priv_key, bob_pub_key)
 
-    base_dir = "../ECDH/Demonstration/Alice"
+    base_dir = "CryptoKeys/ECDH/Demonstration/Alice"
     os.makedirs(base_dir, exist_ok=True)
     save_ecdh_keys(alice_pub_key, alice_shared_key, base_dir)
 
-    base_dir = "../ECDH/Demonstration/Bob"
+    base_dir = "CryptoKeys/ECDH/Demonstration/Bob"
     os.makedirs(base_dir, exist_ok=True)
     save_ecdh_keys(bob_pub_key, bob_shared_key, base_dir)
 
