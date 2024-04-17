@@ -9,12 +9,14 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.exceptions import InvalidSignature
 
+
 def serialize_public_key(public_key):
     """Serializes the public key for transmission."""
     return public_key.public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo
     )
+
 
 def derive_key(shared_secret):
     """Derives a key for AES encryption from the shared secret."""
@@ -25,6 +27,7 @@ def derive_key(shared_secret):
         info=b'handshake data'
     ).derive(shared_secret)
 
+
 def create_encryptor_decryptor(key, iv=None):
     """Creates encryptor and decryptor objects using the derived key and an IV.
        If IV is None, generates a new one, otherwise uses the provided IV."""
@@ -33,9 +36,11 @@ def create_encryptor_decryptor(key, iv=None):
     cipher = Cipher(algorithms.AES(key), modes.CFB(iv))
     return cipher.encryptor(), cipher.decryptor(), iv
 
+
 def sign_message(private_key, message):
     """Signs a message using ECDSA."""
     return private_key.sign(message, ec.ECDSA(hashes.SHA256()))
+
 
 def verify_signature(public_key, message, signature):
     """Verifies a message signature using ECDSA."""
@@ -44,6 +49,7 @@ def verify_signature(public_key, message, signature):
         return True
     except InvalidSignature:
         return False
+
 
 # Communication functions
 def send_messages(connection, user_name, encryptor, private_key):
@@ -63,6 +69,7 @@ def send_messages(connection, user_name, encryptor, private_key):
             print("\nFailed to send message. Error:", e)
             break
 
+
 def receive_messages(connection, decryptor, public_key):
     while True:
         try:
@@ -81,11 +88,12 @@ def receive_messages(connection, decryptor, public_key):
             print("\nConnection lost. Error:", e)
             break
 
+
 # The key exchange must now also handle the exchange of public keys for signature verification
-def exchange_keys(connection, bobPrivKey, is_server):
+def exchange_keys(connection, bob_priv_key, is_server):
     """Exchanges public keys and establishes encryption."""
-    bobPubKey = bobPrivKey.public_key()
-    public_key_bytes = serialize_public_key(bobPubKey)
+    bob_pub_key = bob_priv_key.public_key()
+    public_key_bytes = serialize_public_key(bob_pub_key)
     if is_server:
         # Server sends first, then receives
         connection.send(public_key_bytes)
@@ -95,24 +103,30 @@ def exchange_keys(connection, bobPrivKey, is_server):
         peer_public_key_bytes = connection.recv(1024)
         connection.send(public_key_bytes)
 
-    alicePubKey = serialization.load_pem_public_key(peer_public_key_bytes)
-    shared_secret = bobPrivKey.exchange(ec.ECDH(), alicePubKey)
+    alice_pub_key = serialization.load_pem_public_key(peer_public_key_bytes)
+    bob_shared_key = ECDH.shared_ECDH_key(bob_priv_key, alice_pub_key)
 
-    key = derive_key(shared_secret)
+    base_dir = "CryptoKeys/ECDH/Bob"
+    os.makedirs(base_dir, exist_ok=True)
+    ECDH.save_ECDH_keys(bob_pub_key, bob_shared_key, base_dir)
+
+    key = derive_key(bob_shared_key)
     encryptor, decryptor, iv = create_encryptor_decryptor(key)
+
     if is_server:
         connection.send(iv)  # Server sends IV
     else:
         iv = connection.recv(16)  # Client receives IV
         encryptor, decryptor, _ = create_encryptor_decryptor(key, iv)  # Use existing IV
-    return encryptor, decryptor, alicePubKey
+    return encryptor, decryptor, alice_pub_key
+
 
 def main():
     user_name = input("Enter your name: ")
     peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     peer_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    alicePrivKey, alicePubKey, bobPrivKey, bobPubKey = ECDH.generate_ECDH_keys()
+    bob_priv_key, bob_pub_key = ECDH.generate_ECDH_keys()
 
     if not attempt_connection(peer_socket):
         # Act as server
@@ -123,11 +137,11 @@ def main():
         is_server = False
         print("Connected to Alice.")
 
-        encryptor, decryptor, bobPubKey = exchange_keys(peer_socket, bobPrivKey, is_server)
+        encryptor, decryptor, alice_pub_key = exchange_keys(peer_socket, bob_priv_key, is_server)
 
     # Starting threads for sending and receiving messages
-    receiver_thread = threading.Thread(target=receive_messages, args=(peer_socket, decryptor, bobPubKey))
-    sender_thread = threading.Thread(target=send_messages, args=(peer_socket, user_name, encryptor, bobPrivKey))
+    receiver_thread = threading.Thread(target=receive_messages, args=(peer_socket, decryptor, alice_pub_key))
+    sender_thread = threading.Thread(target=send_messages, args=(peer_socket, user_name, encryptor, bob_priv_key))
 
     receiver_thread.start()
     sender_thread.start()
@@ -138,6 +152,7 @@ def main():
     peer_socket.close()
     print("Chat ended.")
 
+
 # Existing connection handling functions
 def attempt_connection(peer_socket, target=('localhost', 8080)):
     try:
@@ -145,6 +160,7 @@ def attempt_connection(peer_socket, target=('localhost', 8080)):
         return True
     except ConnectionRefusedError:
         return False
+
 
 def create_server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -155,6 +171,7 @@ def create_server():
     connection, address = server_socket.accept()
     print(f"Connection established with Alice {address}")
     return connection
+
 
 if __name__ == "__main__":
     main()
