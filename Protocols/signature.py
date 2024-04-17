@@ -29,9 +29,9 @@ def key_generation(key_type, sk_pem_name, vk_pem_name):
         format=public_format
     )
 
-    with open("CryptoKeys/" + key_type + "/" + sk_pem_name, "wb") as f:
+    with open("Keys/" + key_type + "/" + sk_pem_name, "wb") as f:
         f.write(sk_pem)
-    with open("CryptoKeys/" + key_type + "/" + vk_pem_name, "wb") as f:
+    with open("Keys/" + key_type + "/" + vk_pem_name, "wb") as f:
         f.write(vk_pem)
 
     return sk_pem, vk_pem

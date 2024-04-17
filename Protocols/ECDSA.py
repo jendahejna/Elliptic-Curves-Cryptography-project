@@ -21,9 +21,9 @@ def generate_ECDSA_keys(sk_pem_name, vk_pem_name):
         format=serialization.PublicFormat.SubjectPublicKeyInfo
     )
     # Uložení klíčů
-    with open("CryptoKeys/ECDSA/" + sk_pem_name, "wb") as f:
+    with open("Keys/ECDSA/" + sk_pem_name, "wb") as f:
         f.write(sk_pem)
-    with open("CryptoKeys/ECDSA/" + vk_pem_name, "wb") as f:
+    with open("Keys/ECDSA/" + vk_pem_name, "wb") as f:
         f.write(vk_pem)
 
     return sk_pem, vk_pem
