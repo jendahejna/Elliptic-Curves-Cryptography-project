@@ -2,9 +2,11 @@
 ECDH protocol file.
 
 Functions:
-generate_ECDH_keys: Generates private and public keys for Alice and Bob.
-approve_ECDH_keys: Generates shared keys of Alice and Bob and test if they are same.
-save_ECDH_keys: Saves public keys of Alice and Bob and their shared keys.
+generate_ecdh_keys: Generates private and public keys for this peer.
+approve_ecdh_keys_demo: Demonstrates generation of shared keys for Alice and Bob and test if they are same.
+shared_ecdh_key: Generates shared key for this peer.
+save_ecdh_keys: Saves public key of peer, and it's shared key.
+main: Demonstrates created functions and their implementation.
 
 File author:
 Daniel Kluka, 203251
@@ -19,24 +21,6 @@ import os
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization
-
-
-def generate_ecdh_keys_test():
-    """
-    Generates private and public keys for Alice and Bob.
-
-    Returns:
-    alice_priv_key, alice_pub_key, bob_priv_key, bob_pub_key
-    """
-    # generation of private and public key of Alice
-    alice_priv_key = ec.generate_private_key(ec.SECP384R1(), default_backend())
-    alice_pub_key = alice_priv_key.public_key()
-
-    # generation of private and public key of Bob
-    bob_priv_key = ec.generate_private_key(ec.SECP384R1(), default_backend())
-    bob_pub_key = bob_priv_key.public_key()
-
-    return alice_priv_key, alice_pub_key, bob_priv_key, bob_pub_key
 
 
 def generate_ecdh_keys():
@@ -99,7 +83,7 @@ def shared_ecdh_key(priv_key, peer_pub_key):
 
 def save_ecdh_keys(pub_key, shared_key, base_dir):
     """
-    Saves public key of peer and shared key.
+    Saves public key of peer, and it's shared key.
 
     Args:
     pub_key: Public key of this peer.
