@@ -14,9 +14,9 @@ def generate_EdDSA_keys(sk_pem_name, pk_pem_name):
     pk_pem = public_key.public_bytes(encoding=serialization.Encoding.PEM,
                                          format=serialization.PublicFormat.SubjectPublicKeyInfo)
 
-    with open("Keys/EdDSA/" + sk_pem_name, "wb") as f:
+    with open("../Keys/EdDSA/" + sk_pem_name, "wb") as f:
         f.write(sk_pem)
-    with open("Keys/EdDSA/" + pk_pem_name, "wb") as f:
+    with open("../Keys/EdDSA/" + pk_pem_name, "wb") as f:
         f.write(pk_pem)
 
     return sk_pem, pk_pem
