@@ -1,16 +1,9 @@
 # main.py
-import os
 import socket
 import threading
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.asymmetric import ec, ed25519
-from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.exceptions import InvalidSignature
 
 # Import or define the necessary functions from ECDH, ECDSA, EdDSA, and peer1 modules
-from ECDH import generate_ECDH_keys, approve_ECDH_keys, save_ECDH_keys
-from ECDSA import generate_ECDSA_keys, sign_message as sign_message_ecdsa, verify_message as verify_message_ecdsa
-from EdDSA import generate_EdDSA_keys, sign_message as sign_message_eddsa, verify_message as verify_message_eddsa
+from CryptoKeys.Protocols.ECDH import generate_ecdh_keys, approve_ECDH_keys, save_ecdh_keys
 
 
 def setup_connection():
@@ -28,9 +21,9 @@ def setup_connection():
 
 def secure_key_exchange(peer_socket):
     # Generate ECDH keys and exchange them
-    alicePrivKey, alicePubKey, bobPrivKey, bobPubKey = generate_ECDH_keys()
+    alicePrivKey, alicePubKey, bobPrivKey, bobPubKey = generate_ecdh_keys()
     aliceSharedKey, bobSharedKey = approve_ECDH_keys(alicePrivKey, alicePubKey, bobPrivKey, bobPubKey)
-    save_ECDH_keys(alicePubKey, bobPubKey, aliceSharedKey, bobSharedKey)
+    save_ecdh_keys(alicePubKey, bobPubKey, aliceSharedKey, bobSharedKey)
     # Use shared keys for further encryption of messages
 
 

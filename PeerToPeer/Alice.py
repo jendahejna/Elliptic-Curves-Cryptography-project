@@ -1,7 +1,7 @@
 import socket
 import threading
 import os
-import ECDH
+from Protocols import ECDH
 
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization, hashes
@@ -90,27 +90,27 @@ def receive_messages(connection, decryptor, public_key):
 
 
 # The key exchange must now also handle the exchange of public keys for signature verification
-def exchange_keys(connection, bob_priv_key, is_server):
+def exchange_keys(connection, alice_priv_key, is_server):
     """Exchanges public keys and establishes encryption."""
-    bob_pub_key = bob_priv_key.public_key()
-    public_key_bytes = serialize_public_key(bob_pub_key)
+    alice_pub_key = alice_priv_key.public_key()
+    public_key_bytes = serialize_public_key(alice_pub_key)
     if is_server:
         # Server sends first, then receives
         connection.send(public_key_bytes)
         peer_public_key_bytes = connection.recv(1024)
     else:
-        # Client receives first, then sends
+        # Client receives first, then sendsA
         peer_public_key_bytes = connection.recv(1024)
         connection.send(public_key_bytes)
 
-    alice_pub_key = serialization.load_pem_public_key(peer_public_key_bytes)
-    bob_shared_key = ECDH.shared_ECDH_key(bob_priv_key, alice_pub_key)
+    bob_pub_key = serialization.load_pem_public_key(peer_public_key_bytes)
+    alice_shared_key = ECDH.shared_ecdh_key(alice_priv_key, bob_pub_key)
 
-    base_dir = "CryptoKeys/ECDH/Bob"
+    base_dir = "../ECDH/Alice"
     os.makedirs(base_dir, exist_ok=True)
-    ECDH.save_ECDH_keys(bob_pub_key, bob_shared_key, base_dir)
+    ECDH.save_ecdh_keys(alice_pub_key, alice_shared_key, base_dir)
 
-    key = derive_key(bob_shared_key)
+    key = derive_key(alice_shared_key)
     encryptor, decryptor, iv = create_encryptor_decryptor(key)
 
     if is_server:
@@ -118,7 +118,7 @@ def exchange_keys(connection, bob_priv_key, is_server):
     else:
         iv = connection.recv(16)  # Client receives IV
         encryptor, decryptor, _ = create_encryptor_decryptor(key, iv)  # Use existing IV
-    return encryptor, decryptor, alice_pub_key
+    return encryptor, decryptor, bob_pub_key
 
 
 def main():
@@ -126,7 +126,7 @@ def main():
     peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     peer_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    bob_priv_key, bob_pub_key = ECDH.generate_ECDH_keys()
+    alice_priv_key, alice_pub_key = ECDH.generate_ecdh_keys()
 
     if not attempt_connection(peer_socket):
         # Act as server
@@ -135,13 +135,13 @@ def main():
     else:
         # Connected as client
         is_server = False
-        print("Connected to Alice.")
+        print("Connected to Bob.")
 
-    encryptor, decryptor, alice_pub_key = exchange_keys(peer_socket, bob_priv_key, is_server)
+    encryptor, decryptor, bob_pub_key = exchange_keys(peer_socket, alice_priv_key, is_server)
 
     # Starting threads for sending and receiving messages
-    receiver_thread = threading.Thread(target=receive_messages, args=(peer_socket, decryptor, alice_pub_key))
-    sender_thread = threading.Thread(target=send_messages, args=(peer_socket, user_name, encryptor, bob_priv_key))
+    receiver_thread = threading.Thread(target=receive_messages, args=(peer_socket, decryptor, bob_pub_key))
+    sender_thread = threading.Thread(target=send_messages, args=(peer_socket, user_name, encryptor, alice_priv_key))
 
     receiver_thread.start()
     sender_thread.start()
@@ -169,7 +169,7 @@ def create_server():
     server_socket.listen(1)
     print("Waiting for connection on port 8080.")
     connection, address = server_socket.accept()
-    print(f"Connection established with Alice {address}")
+    print(f"Connection established with Bob {address}")
     return connection
 
 
