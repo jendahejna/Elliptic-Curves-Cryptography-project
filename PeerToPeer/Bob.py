@@ -106,7 +106,7 @@ def exchange_keys(connection, bob_priv_key, is_server):
     alice_pub_key = serialization.load_pem_public_key(peer_public_key_bytes)
     bob_shared_key = ECDH.shared_ecdh_key(bob_priv_key, alice_pub_key)
 
-    base_dir = "../ECDH/Bob"
+    base_dir = "../Keys/ECDH/Bob"
     os.makedirs(base_dir, exist_ok=True)
     ECDH.save_ecdh_keys(bob_pub_key, bob_shared_key, base_dir)
 

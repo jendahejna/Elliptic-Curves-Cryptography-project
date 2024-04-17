@@ -99,14 +99,14 @@ def exchange_keys(connection, alice_priv_key, is_server):
         connection.send(public_key_bytes)
         peer_public_key_bytes = connection.recv(1024)
     else:
-        # Client receives first, then sendsA
+        # Client receives first, then sends
         peer_public_key_bytes = connection.recv(1024)
         connection.send(public_key_bytes)
 
     bob_pub_key = serialization.load_pem_public_key(peer_public_key_bytes)
     alice_shared_key = ECDH.shared_ecdh_key(alice_priv_key, bob_pub_key)
 
-    base_dir = "../ECDH/Alice"
+    base_dir = "../Keys/ECDH/Alice"
     os.makedirs(base_dir, exist_ok=True)
     ECDH.save_ecdh_keys(alice_pub_key, alice_shared_key, base_dir)
 
