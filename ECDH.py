@@ -100,9 +100,9 @@ def save_ECDH_keys(alicePubKey, bobPubKey, aliceSharedKey, bobSharedKey):
     print("Keys successfully saved")
 
 # test of created functions for further implementaions
-alicePrivKey, alicePubKey, bobPrivKey, bobPubKey = generate_ECDH_keys()
-aliceSharedKey, bobSharedKey = approve_ECDH_keys(alicePrivKey, alicePubKey, bobPrivKey, bobPubKey)
-save_ECDH_keys(alicePubKey, bobPubKey, aliceSharedKey, bobSharedKey)
+#alicePrivKey, alicePubKey, bobPrivKey, bobPubKey = generate_ECDH_keys()
+#aliceSharedKey, bobSharedKey = approve_ECDH_keys(alicePrivKey, alicePubKey, bobPrivKey, bobPubKey)
+#save_ECDH_keys(alicePubKey, bobPubKey, aliceSharedKey, bobSharedKey)
 
-print("AliceSharedKey: " + aliceSharedKey.hex())
-print("BodSharedKey: " + bobSharedKey.hex())
+#print("AliceSharedKey: " + aliceSharedKey.hex())
+#print("BodSharedKey: " + bobSharedKey.hex())

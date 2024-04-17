@@ -9,27 +9,12 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.exceptions import InvalidSignature
 
-# Helper functions for ECDH, ECIES, and ECDSA
-def generate_keys():
-    """Generates ECDH key pairs."""
-    private_key = ec.generate_private_key(ec.SECP384R1())
-    public_key = private_key.public_key()
-    return private_key, public_key
-
 def serialize_public_key(public_key):
     """Serializes the public key for transmission."""
     return public_key.public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo
     )
-
-def deserialize_public_key(public_key_bytes):
-    """Deserializes the public key received from peer."""
-    return serialization.load_pem_public_key(public_key_bytes)
-
-def derive_shared_secret(private_key, peer_public_key):
-    """Derives the shared secret using own private key and peer's public key."""
-    return private_key.exchange(ec.ECDH(), peer_public_key)
 
 def derive_key(shared_secret):
     """Derives a key for AES encryption from the shared secret."""
@@ -97,35 +82,38 @@ def receive_messages(connection, decryptor, public_key):
             break
 
 # The key exchange must now also handle the exchange of public keys for signature verification
-def exchange_keys(connection, private_key, is_server):
+def exchange_keys(connection, alicePrivKey, is_server):
     """Exchanges public keys and establishes encryption."""
-    public_key = private_key.public_key()
-    public_key_bytes = serialize_public_key(public_key)
+    alicePubKey = alicePrivKey.public_key()
+    public_key_bytes = serialize_public_key(alicePubKey)
     if is_server:
         # Server sends first, then receives
         connection.send(public_key_bytes)
         peer_public_key_bytes = connection.recv(1024)
     else:
-        # Client receives first, then sends
+        # Client receives first, then sendsA
         peer_public_key_bytes = connection.recv(1024)
         connection.send(public_key_bytes)
 
-    peer_public_key = deserialize_public_key(peer_public_key_bytes)
-    shared_secret = derive_shared_secret(private_key, peer_public_key)
+    bobPubKey = serialization.load_pem_public_key(peer_public_key_bytes)
+    shared_secret = alicePrivKey.exchange(ec.ECDH(), bobPubKey)
+
     key = derive_key(shared_secret)
     encryptor, decryptor, iv = create_encryptor_decryptor(key)
+
     if is_server:
         connection.send(iv)  # Server sends IV
     else:
         iv = connection.recv(16)  # Client receives IV
         encryptor, decryptor, _ = create_encryptor_decryptor(key, iv)  # Use existing IV
-    return encryptor, decryptor, peer_public_key
+    return encryptor, decryptor, bobPubKey
 
 def main():
     user_name = input("Enter your name: ")
     peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     peer_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    private_key, public_key = generate_keys()
+
+    alicePrivKey, alicePubKey, bobPrivKey, bobPubKey = ECDH.generate_ECDH_keys()
 
 
     if not attempt_connection(peer_socket):
@@ -135,14 +123,14 @@ def main():
     else:
         # Connected as client
         is_server = False
-        print("Connected to the peer.")
-    
-    encryptor, decryptor, peer_public_key = exchange_keys(peer_socket, private_key, is_server)
+        print("Connected to Bob.")
+
+    encryptor, decryptor, bobPubKey = exchange_keys(peer_socket, alicePrivKey, is_server)
 
     # Starting threads for sending and receiving messages
-    receiver_thread = threading.Thread(target=receive_messages, args=(peer_socket, decryptor, peer_public_key))
-    sender_thread = threading.Thread(target=send_messages, args=(peer_socket, user_name, encryptor, private_key))
-    
+    receiver_thread = threading.Thread(target=receive_messages, args=(peer_socket, decryptor, bobPubKey))
+    sender_thread = threading.Thread(target=send_messages, args=(peer_socket, user_name, encryptor, alicePrivKey))
+
     receiver_thread.start()
     sender_thread.start()
 
@@ -167,7 +155,7 @@ def create_server():
     server_socket.listen(1)
     print("Waiting for connection on port 8080.")
     connection, address = server_socket.accept()
-    print(f"Connection established with {address}")
+    print(f"Connection established with Bob {address}")
     return connection
 
 if __name__ == "__main__":
