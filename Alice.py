@@ -1,6 +1,8 @@
 import socket
 import threading
 import os
+import ECDH
+
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
@@ -124,6 +126,7 @@ def main():
     peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     peer_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     private_key, public_key = generate_keys()
+
 
     if not attempt_connection(peer_socket):
         # Act as server
