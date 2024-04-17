@@ -137,7 +137,7 @@ def main():
         is_server = False
         print("Connected to Alice.")
 
-        encryptor, decryptor, alice_pub_key = exchange_keys(peer_socket, bob_priv_key, is_server)
+    encryptor, decryptor, alice_pub_key = exchange_keys(peer_socket, bob_priv_key, is_server)
 
     # Starting threads for sending and receiving messages
     receiver_thread = threading.Thread(target=receive_messages, args=(peer_socket, decryptor, alice_pub_key))
