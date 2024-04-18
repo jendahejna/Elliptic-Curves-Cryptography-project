@@ -41,3 +41,23 @@ def verify_message(message, signature, public_pem):
     except InvalidSignature:
         return False
 
+
+# Názvy souborů pro uložení klíčů (předpokládá existenci složky)
+private_key_filename = "eddsa_private_key.pem"
+public_key_filename = "eddsa_public_key.pem"
+
+# Generuj klíče a ulož je
+private_pem, public_pem = generate_EdDSA_keys(private_key_filename, public_key_filename)
+
+# Definuj zprávu, kterou chceš podepsat
+message = "Hello, this is a test message!"
+
+# Podepiš zprávu
+signature = sign_message(message, private_pem)
+
+# Ověř podpis
+verification_result = verify_message(message, signature, public_pem)
+
+# Vypiš výsledek ověření
+print("Verification successful" if verification_result else "Verification failed.")
+print(signature.hex(), verification_result)

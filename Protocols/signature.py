@@ -3,14 +3,21 @@ from cryptography.hazmat.primitives.asymmetric import ec, ed25519
 from cryptography.hazmat.backends import default_backend
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
+import os
 
-def key_generation(key_type, sk_pem_name, vk_pem_name):
-    if key_type == 'ECDSA':
+
+def key_generation(signature_name, sk_pem_name, vk_pem_name):
+    base_path = "Keys/" + signature_name
+    os.makedirs(base_path, exist_ok=True)
+
+    if signature_name == "ECDSA":
         private_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
         public_key = private_key.public_key()
         private_format = serialization.PrivateFormat.TraditionalOpenSSL
         public_format = serialization.PublicFormat.SubjectPublicKeyInfo
-    elif key_type == 'EdDSA':
+        print("ECDSA key generating")
+    elif signature_name == "EdDSA":
+        print("EdDSA key generating")
         private_key = ed25519.Ed25519PrivateKey.generate()
         public_key = private_key.public_key()
         private_format = serialization.PrivateFormat.PKCS8
@@ -23,62 +30,50 @@ def key_generation(key_type, sk_pem_name, vk_pem_name):
         format=private_format,
         encryption_algorithm=serialization.NoEncryption()
     )
-
     vk_pem = public_key.public_bytes(
         encoding=serialization.Encoding.PEM,
         format=public_format
     )
 
-    with open("Keys/" + key_type + "/" + sk_pem_name, "wb") as f:
+    private_key_path = os.path.join(base_path, sk_pem_name)
+    public_key_path = os.path.join(base_path, vk_pem_name)
+
+    with open(private_key_path, "wb") as f:
         f.write(sk_pem)
-    with open("Keys/" + key_type + "/" + vk_pem_name, "wb") as f:
+    with open(public_key_path, "wb") as f:
         f.write(vk_pem)
 
-    return sk_pem, vk_pem
+    return private_key, public_key
 
-def sign_file(key_type, file_path, private_pem):
-    with open(file_path, "rb") as f:
-        message = f.read()
 
-    with open(private_pem, "rb") as key_file:
-        private_key = serialization.load_pem_private_key(
-            key_file.read(),
-            password=None,
-            backend=default_backend()
-        )
 
-    if key_type == 'ECDSA':
+def sign_message(private_key, message, signature_name):
+    print("Key type:", type(private_key))
+    print("Signature name:", signature_name)
+    if signature_name == "ECDSA":
+        # ECDSA requires specifying the hash algorithm.
         signature = private_key.sign(
             message,
             ec.ECDSA(hashes.SHA256())
         )
-    elif key_type == 'EdDSA':
-        signature = private_key.sign(
-            message
-        )
+    elif signature_name == "EdDSA":
+        # EdDSA does not require specifying the hash algorithm in this library.
+        signature = private_key.sign(message)
     else:
-        raise ValueError("Unsupported key type")
+        raise ValueError("Unsupported signature type: " + signature_name)
 
     return signature
 
-def verify_file(key_type, file_path, signature, public_pem):
-    with open(file_path, "rb") as f:
-        message = f.read()
 
-    with open(public_pem, "rb") as key_file:
-        public_key = serialization.load_pem_public_key(
-            key_file.read(),
-            backend=default_backend()
-        )
-
+def verify_signature(public_key, message, signature, signature_name):
     try:
-        if key_type == 'ECDSA':
+        if signature_name == "ECDSA":
             public_key.verify(
                 signature,
                 message,
                 ec.ECDSA(hashes.SHA256())
             )
-        elif key_type == 'EdDSA':
+        elif signature_name == "EdDSA":
             public_key.verify(
                 signature,
                 message
@@ -89,12 +84,4 @@ def verify_file(key_type, file_path, signature, public_pem):
     except InvalidSignature:
         return False
 
-# Příklad použití
-key_type = 'EdDSA' # Nebo 'ECDSA'
-private_pem, public_pem = generate_keys(key_type, "sk_test.pem", "pk_test.pem")
-message = "Hello, world!"
-signature = sign_message(key_type, message.encode(), private_pem)
-print("Signature:", signature.hex())
 
-verification_result = verify_message(key_type, message.encode(), signature, public_pem)
-print("Verification result:", verification_result)
