@@ -2,15 +2,17 @@
 Alice peer file.
 
 Functions:
-    serialize_public_key:       Generates private and public keys for this peer.
-    derive_key:                 Demonstrates generation of shared keys for Alice and Bob and test if they are same.
-    create_encryptor_decryptor: Generates shared key for this peer.
-    sign_message:               Saves public key of peer, and it's shared key.
-    verify_signature:
-    send_messages:
-    receive_messages:
-    exchange_keys:
+    serialize_public_key:       Serializes the public key for transmission.
+    derive_key:                 Derives a key for AES encryption from the shared key of this peer.
+    create_encryptor_decryptor: Creates encryptor and decryptor objects using the derived key and an IV.
+    sign_message:               Signs a message using ECDSA.
+    verify_signature:           Verifies a message signature using ECDSA.
+    send_messages:              Sends encrypted and signed messages from the user over a given connection.
+    receive_messages:           Receives, decrypts, and verifies encrypted messages over a given connection.
+    exchange_keys:              Exchanges public keys and establishes encryption.
     main:                       Demonstrates created functions and their implementation.
+    attempt_connection:         Attempts to establish a connection to a specified target using the given socket.
+    create_server:              Creates a server socket, binds it to a local address, and listens for incoming client connections.
 
 File authors:
     Daniel Kluka, 203251
@@ -31,19 +33,6 @@ from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.exceptions import InvalidSignature
-
-
-def serialize_public_key(public_key):
-    """
-    Serializes the public key for transmission.
-
-    Args:
-        public_key: Public key of this peer.
-    """
-    return public_key.public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo
-    )
 
 
 def derive_key(shared_key):
@@ -106,7 +95,10 @@ def verify_signature(public_key, message, signature):
         signature:  Signature of this message.
 
     Return:
-          Verification, if signature is right.
+        Verification, if signature is right.
+
+    Exceptions:
+        Raised if the signature does not match the message.
     """
     try:
         public_key.verify(signature, message, ec.ECDSA(hashes.SHA256()))
@@ -115,14 +107,30 @@ def verify_signature(public_key, message, signature):
         return False
 
 
-# Communication functions
-def send_messages(connection, user_name, encryptor, private_key):
+def send_messages(connection, peer_name, encryptor, private_key):
+    """
+    Sends encrypted and signed messages from the user over a given connection.
+
+    Args:
+        connection:     The communication channel used to send encrypted messages.
+        peer_name:      Name of this peer.
+        encryptor:      Data encryptor object.
+        private_key:    Private key of this peer.
+
+    Returns:
+        The function returns None as it is designed to run indefinitely until
+        the user decides to quit the messaging session.
+
+    Exceptions:
+        The function will catch and print any exceptions raised during the message
+        sending process, mainly focusing on connection issues.
+    """
     while True:
         message = input("")
         if message.lower() == 'quit':
             connection.send(b'quit')  # send quit signal
             break
-        full_message = f"{user_name}: {message}"
+        full_message = f"{peer_name}: {message}"
         signature = sign_message(private_key, full_message.encode('utf-8'))
         full_message += '|' + signature.hex()  # Append signature in hex format for convenience
         encrypted_message = encryptor.update(full_message.encode('utf-8'))
@@ -135,6 +143,17 @@ def send_messages(connection, user_name, encryptor, private_key):
 
 
 def receive_messages(connection, decryptor, public_key):
+    """
+    Receives, decrypts, and verifies encrypted messages over a given connection.
+
+    Parameters:
+        connection: The communication channel used to receive encrypted messages.
+        decryptor:  Data decryptor object.
+        public_key: Public key of other peer.
+
+    Exceptions:
+        General exception handling to catch and handle unexpected errors
+    """
     while True:
         try:
             encrypted_message = connection.recv(1024)
@@ -153,11 +172,28 @@ def receive_messages(connection, decryptor, public_key):
             break
 
 
-# The key exchange must now also handle the exchange of public keys for signature verification
 def exchange_keys(connection, alice_priv_key, is_server):
-    """Exchanges public keys and establishes encryption."""
+    """
+    Exchanges public keys and establishes encryption.
+
+    Args:
+        connection:     The communication channel used to send and receive public keys.
+        alice_priv_key: Alice's private key used to generate her public key and to compute the shared ECDH key.
+        is_server:      A flag indicating whether the caller is the server or client.
+
+    Returns:
+        tuple:  A tuple containing the encryptor, decryptor, and Bob's public key:
+            encryptor:      Used to encrypt messages.
+            decryptor:      Used to decrypt received messages.
+            bob_pub_key:    Bob's public key for signature verification.
+
+    Exceptions:
+        This function handles connection and serialization errors internally, primarily
+        during the key exchange or IV management phases. Any exceptions will cause
+        an appropriate error message to be printed and will terminate the execution.
+    """
     alice_pub_key = alice_priv_key.public_key()
-    public_key_bytes = serialize_public_key(alice_pub_key)
+    public_key_bytes = ECDH.serialize_pub_key(alice_pub_key)
     if is_server:
         # Server sends first, then receives
         connection.send(public_key_bytes)
@@ -186,6 +222,25 @@ def exchange_keys(connection, alice_priv_key, is_server):
 
 
 def main():
+    """
+    Initializes and runs the main functionality for Alice's side of a secure chat application.
+
+    This function handles the setup and management of a peer-to-peer (P2P) encrypted chat session
+    using elliptic curve cryptography (ECC) for secure key exchange and message encryption.
+
+    Steps:
+        1. Sets up Alice's identity and creates a socket for network communication.
+        2. Prompts the user to enter the name of the elliptic curve for key generation.
+        3. Attempts to establish a connection with Bob:
+            - If a connection is not initially established, it assumes the role of server and waits for a client.
+            - If connected, it assumes the role of client.
+        4. Exchanges public keys and establishes encryption parameters including encryptor and decryptor.
+        5. Starts separate threads for sending and receiving encrypted messages.
+        6. Waits for both threads to finish, which occurs when the chat session ends.
+        7. Closes the network socket and prints a message indicating the end of the chat.
+
+    The user is responsible for specifying the correct elliptic curve name that must be agreed upon by both peers.
+    """
     print("Peer name: Alice")
     peer_name = "Alice"
     peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -219,8 +274,20 @@ def main():
     print("Chat ended.")
 
 
-# Existing connection handling functions
 def attempt_connection(peer_socket, target=('localhost', 8080)):
+    """
+    Attempts to establish a connection to a specified target using the given socket.
+
+    Args:
+        peer_socket:    The socket object configured for network communication.
+        target:         A tuple containing the target host address and port number.
+
+    Returns:
+        Returns True if the connection is successfully established, False if not.
+
+    Exceptions:
+        This function catches this specific exception to return False.
+    """
     try:
         peer_socket.connect(target)
         return True
@@ -229,6 +296,15 @@ def attempt_connection(peer_socket, target=('localhost', 8080)):
 
 
 def create_server():
+    """
+    Creates a server socket, binds it to a local address, and listens for incoming client connections.
+
+    Returns:
+        socket: Returns the client connection socket object, which can be used to send and receive data.
+
+    Exceptions:
+        Socket-related exceptions can occur during socket creation, binding, listening, or accepting connections.
+    """
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind(('localhost', 8080))

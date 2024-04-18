@@ -148,7 +148,7 @@ def main():
 
     print("Shared key of Alice: " + alice_shared_key.hex())
     print("Shared key of Bob: " + bob_shared_key.hex())
-    #print(alice_shared_key_serialized.decode())
+
     print("")
 
     base_dir = "../Keys/ECDH/Demonstration/Alice"
