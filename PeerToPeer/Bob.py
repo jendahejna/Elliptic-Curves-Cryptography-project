@@ -41,6 +41,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.exceptions import InvalidSignature
 from Protocols.signature import key_generation, sign_message, verify_signature
 
+
 def derive_key(shared_key):
     """
     Derives a key for AES encryption from the shared key of this peer.
@@ -121,7 +122,8 @@ def send_messages(connection, peer_name, encryptor, signature_priv_key, signatur
         connection:     The communication channel used to send encrypted messages.
         peer_name:      Name of this peer.
         encryptor:      Data encryptor object.
-        private_key:    Private key of this peer.
+        signature_priv_key:    Private key of this peer.
+        signature_name:
 
     Returns:
         The function returns None as it is designed to run indefinitely until
@@ -155,7 +157,8 @@ def receive_messages(connection, decryptor, signature_pub_key, signature_name):
     Parameters:
         connection: The communication channel used to receive encrypted messages.
         decryptor:  Data decryptor object.
-        public_key: Public key of other peer.
+        signature_pub_key: Public key of other peer.
+        signature_name:
 
     Exceptions:
         General exception handling to catch and handle unexpected errors
@@ -225,6 +228,7 @@ def exchange_keys(connection, bob_priv_key, is_server):
         encryptor, decryptor, _ = create_encryptor_decryptor(key, iv)  # Use existing IV
     return encryptor, decryptor, alice_pub_key
 
+
 def exchange_signature_keys(connection, local_signature_pub_key, is_server):
     """Exchange signature public keys between two communication parties."""
     local_pub_key_bytes = ECDH.serialize_pub_key(local_signature_pub_key)
@@ -233,6 +237,7 @@ def exchange_signature_keys(connection, local_signature_pub_key, is_server):
         connection.send(local_pub_key_bytes)
     peer_signature_pub_key = serialization.load_pem_public_key(peer_pub_key_bytes)
     return peer_signature_pub_key
+
 
 def attempt_connection(peer_socket, target=('localhost', 8080)):
     """
@@ -316,8 +321,10 @@ def main():
     encryptor, decryptor, alice_pub_key = exchange_keys(peer_socket, bob_priv_key, is_server)
     peer_signature_pub_key = exchange_signature_keys(peer_socket, signature_public_key, is_server=False)
     # Starting threads for sending and receiving messages
-    receiver_thread = threading.Thread(target=receive_messages, args=(peer_socket, decryptor, peer_signature_pub_key, signature_name))
-    sender_thread = threading.Thread(target=send_messages, args=(peer_socket, peer_name, encryptor, signature_private_key, signature_name))
+    receiver_thread = threading.Thread(target=receive_messages,
+                                       args=(peer_socket, decryptor, peer_signature_pub_key, signature_name))
+    sender_thread = threading.Thread(target=send_messages,
+                                     args=(peer_socket, peer_name, encryptor, signature_private_key, signature_name))
 
     receiver_thread.start()
     sender_thread.start()

@@ -7,7 +7,7 @@ import os
 
 
 def key_generation(signature_name, sk_pem_name, vk_pem_name):
-    base_path = "Keys/" + signature_name
+    base_path = "../Keys/Signature/" + signature_name
     os.makedirs(base_path, exist_ok=True)
 
     if signature_name == "ECDSA":

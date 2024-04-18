@@ -93,39 +93,16 @@ def sign_file(private_key, message):
     return 0
 
 
-###
-
-def signature(public_key, message, signature):
-    """
-    Verifies a message signature using ECDSA.
-
-    Args:
-        public_key: Public key of this peer.
-        message:    Signed message.
-        signature:  Signature of this message.
-
-    Return:
-        Verification, if signature is right.
-
-    Exceptions:
-        Raised if the signature does not match the message.
-    """
-    try:
-        public_key.verify(signature, message, ec.ECDSA(hashes.SHA256()))
-        return True
-    except InvalidSignature:
-        return False
-
-
-def send_messages(connection, peer_name, encryptor, signature_private_key, signature_name):
+def send_messages(connection, peer_name, encryptor, signature_priv_key, signature_name):
     """
     Sends encrypted and signed messages from the user over a given connection.
 
     Args:
-        connection:     The communication channel used to send encrypted messages.
-        peer_name:      Name of this peer.
-        encryptor:      Data encryptor object.
-        signature_private_key:    Private key of this peer.
+        connection:         The communication channel used to send encrypted messages.
+        peer_name:          Name of this peer.
+        encryptor:          Data encryptor object.
+        signature_priv_key: Private key of this peer.
+        signature_name:
 
     Returns:
         The function returns None as it is designed to run indefinitely until
@@ -141,13 +118,13 @@ def send_messages(connection, peer_name, encryptor, signature_private_key, signa
             connection.send(b'quit')  # Send quit signal
             break
 
-        print("Key type:", type(signature_private_key))
+        print("Key type:", type(signature_priv_key))
         print("Signature name:", signature_name)
 
-        # Prepare the message by prefixing the user name
+        # Prepare the message by prefixing the username
         full_message = f"{peer_name}: {message}"
         # Sign the message
-        signature = sign_message(signature_private_key, full_message.encode('utf-8'), signature_name)
+        signature = sign_message(signature_priv_key, full_message.encode('utf-8'), signature_name)
         # Encode signature in hex and append to the message
         full_message += '|' + signature.hex()
 
@@ -162,14 +139,15 @@ def send_messages(connection, peer_name, encryptor, signature_private_key, signa
             break
 
 
-def receive_messages(connection, decryptor, signature_public_key, signature_name):
+def receive_messages(connection, decryptor, signature_pub_key, signature_name):
     """
     Receives, decrypts, and verifies encrypted messages over a given connection.
 
     Parameters:
         connection: The communication channel used to receive encrypted messages.
         decryptor:  Data decryptor object.
-        signature_public_key: Public key of other peer.
+        signature_pub_key: Public key of other peer.
+        signature_name:
 
     Exceptions:
         General exception handling to catch and handle unexpected errors
@@ -187,7 +165,7 @@ def receive_messages(connection, decryptor, signature_public_key, signature_name
             # Split message and its signature
             message, signature_hex = message.rsplit(b'|', 1)
             # Verify the signature
-            if verify_signature(signature_public_key, message, bytes.fromhex(signature_hex.decode()), signature_name):
+            if verify_signature(signature_pub_key, message, bytes.fromhex(signature_hex.decode()), signature_name):
                 print("Decrypted and verified message:", message.decode('utf-8'))
             else:
                 print("Failed to verify message signature.")
@@ -333,7 +311,7 @@ def main():
     peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     peer_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    curve_name = input("Enter the curve name, must be the same for both peers (e.g., SECP384R1, SECP521R1): ")
+    curve_name = input("Enter the ECDH curve name, must be the same for both peers (e.g., SECP384R1, SECP521R1): ")
     signature_name = input("Enter algorithm for digital signature (e.g., ECDSA, EdDSA): ")
     alice_priv_key, alice_pub_key = ECDH.generate_ecdh_keys(curve_name)
 
@@ -352,15 +330,13 @@ def main():
     signature_private_key, signature_public_key = key_generation(signature_name, 'alice_priv.pem', 'alice_pub.pem')
 
     # Exchange signature public keys (assuming the exchange_keys function can be adjusted to handle this)
-
-
     peer_signature_pub_key = exchange_signature_keys(peer_socket, signature_public_key, is_server)
 
     # Starting threads for sending and receiving messages
     receiver_thread = threading.Thread(target=receive_messages,
-                                   args=(peer_socket, decryptor, peer_signature_pub_key, signature_name))
+                                       args=(peer_socket, decryptor, peer_signature_pub_key, signature_name))
     sender_thread = threading.Thread(target=send_messages,
-                                 args=(peer_socket, peer_name, encryptor, signature_private_key, signature_name))
+                                     args=(peer_socket, peer_name, encryptor, signature_private_key, signature_name))
 
     receiver_thread.start()
     sender_thread.start()
@@ -370,6 +346,7 @@ def main():
 
     peer_socket.close()
     print("Chat ended.")
+
 
 if __name__ == "__main__":
     main()
