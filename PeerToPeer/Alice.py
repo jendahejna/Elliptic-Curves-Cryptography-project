@@ -1,3 +1,26 @@
+"""
+Alice peer file.
+
+Functions:
+    serialize_public_key:       Generates private and public keys for this peer.
+    derive_key:                 Demonstrates generation of shared keys for Alice and Bob and test if they are same.
+    create_encryptor_decryptor: Generates shared key for this peer.
+    sign_message:               Saves public key of peer, and it's shared key.
+    verify_signature:
+    send_messages:
+    receive_messages:
+    exchange_keys:
+    main:                       Demonstrates created functions and their implementation.
+
+File authors:
+    Daniel Kluka, 203251
+
+Version:
+    3.0
+
+Date:
+    18.4.2024
+"""
 import socket
 import threading
 import os
@@ -11,26 +34,47 @@ from cryptography.exceptions import InvalidSignature
 
 
 def serialize_public_key(public_key):
-    """Serializes the public key for transmission."""
+    """
+    Serializes the public key for transmission.
+
+    Args:
+        public_key: Public key of this peer.
+    """
     return public_key.public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo
     )
 
 
-def derive_key(shared_secret):
-    """Derives a key for AES encryption from the shared secret."""
+def derive_key(shared_key):
+    """
+    Derives a key for AES encryption from the shared key of this peer.
+
+    Args:
+        shared_key: Shared key of this peer.
+    """
     return HKDF(
         algorithm=hashes.SHA256(),
         length=32,
         salt=None,
         info=b'handshake data'
-    ).derive(shared_secret)
+    ).derive(shared_key)
 
 
 def create_encryptor_decryptor(key, iv=None):
-    """Creates encryptor and decryptor objects using the derived key and an IV.
-       If IV is None, generates a new one, otherwise uses the provided IV."""
+    """
+    Creates encryptor and decryptor objects using the derived key and an IV.
+    If IV is None, generates a new one, otherwise uses the provided IV.
+
+    Args:
+        key:    Derived key from shared key.
+        iv:     Initialization vector for increased security.
+
+    Returns:
+        encryptor:  Data encryptor object.
+        decryptor:  Data decryptor object.
+        iv:         Initialization vector.
+    """
     if iv is None:
         iv = os.urandom(16)
     cipher = Cipher(algorithms.AES(key), modes.CFB(iv))
@@ -38,12 +82,32 @@ def create_encryptor_decryptor(key, iv=None):
 
 
 def sign_message(private_key, message):
-    """Signs a message using ECDSA."""
+    """
+    Signs a message using ECDSA.
+
+    Args:
+        private_key:    Private key of this peer.
+        message:        Message to be signed.
+
+    Return:
+        Digital signature of signed message to increase authentication.
+
+    """
     return private_key.sign(message, ec.ECDSA(hashes.SHA256()))
 
 
 def verify_signature(public_key, message, signature):
-    """Verifies a message signature using ECDSA."""
+    """
+    Verifies a message signature using ECDSA.
+
+    Args:
+        public_key: Public key of this peer.
+        message:    Signed message.
+        signature:  Signature of this message.
+
+    Return:
+          Verification, if signature is right.
+    """
     try:
         public_key.verify(signature, message, ec.ECDSA(hashes.SHA256()))
         return True
@@ -122,11 +186,13 @@ def exchange_keys(connection, alice_priv_key, is_server):
 
 
 def main():
-    user_name = input("Enter your name: ")
+    print("Peer name: Alice")
+    peer_name = "Alice"
     peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     peer_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    alice_priv_key, alice_pub_key = ECDH.generate_ecdh_keys()
+    curve_name = input("Enter the curve name, must be the same for both peers (e.g., SECP384R1, SECP521R1): ")
+    alice_priv_key, alice_pub_key = ECDH.generate_ecdh_keys(curve_name)
 
     if not attempt_connection(peer_socket):
         # Act as server
@@ -141,7 +207,7 @@ def main():
 
     # Starting threads for sending and receiving messages
     receiver_thread = threading.Thread(target=receive_messages, args=(peer_socket, decryptor, bob_pub_key))
-    sender_thread = threading.Thread(target=send_messages, args=(peer_socket, user_name, encryptor, alice_priv_key))
+    sender_thread = threading.Thread(target=send_messages, args=(peer_socket, peer_name, encryptor, alice_priv_key))
 
     receiver_thread.start()
     sender_thread.start()

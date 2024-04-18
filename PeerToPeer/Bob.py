@@ -122,11 +122,13 @@ def exchange_keys(connection, bob_priv_key, is_server):
 
 
 def main():
-    user_name = input("Enter your name: ")
+    print("Peer name: Bob")
+    peer_name = "Bob"
     peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     peer_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    bob_priv_key, bob_pub_key = ECDH.generate_ecdh_keys()
+    curve_name = input("Enter the curve name, must be the same for both peers (e.g., SECP384R1, SECP521R1): ")
+    bob_priv_key, bob_pub_key = ECDH.generate_ecdh_keys(curve_name)
 
     if not attempt_connection(peer_socket):
         # Act as server
@@ -141,7 +143,7 @@ def main():
 
     # Starting threads for sending and receiving messages
     receiver_thread = threading.Thread(target=receive_messages, args=(peer_socket, decryptor, alice_pub_key))
-    sender_thread = threading.Thread(target=send_messages, args=(peer_socket, user_name, encryptor, bob_priv_key))
+    sender_thread = threading.Thread(target=send_messages, args=(peer_socket, peer_name, encryptor, bob_priv_key))
 
     receiver_thread.start()
     sender_thread.start()
