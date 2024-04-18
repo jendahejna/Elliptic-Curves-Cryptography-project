@@ -135,7 +135,6 @@ def main():
 
     alice_pub_key_serialized = serialize_pub_key(alice_pub_key)
     bob_pub_key_serialized = serialize_pub_key(bob_pub_key)
-    #alice_shared_key_serialized = serialize_pub_key(alice_shared_key)
 
     print("")
     print("Alice's public key:")

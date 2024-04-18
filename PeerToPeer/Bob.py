@@ -34,11 +34,10 @@ import threading
 import os
 from Protocols import ECDH
 
-from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.exceptions import InvalidSignature
 from Protocols.signature import key_generation, sign_message, verify_signature
 
 
@@ -77,41 +76,19 @@ def create_encryptor_decryptor(key, iv=None):
     return cipher.encryptor(), cipher.decryptor(), iv
 
 
-def sign_mess(private_key, message):
-    """
-    Signs a message using ECDSA.
+# def sign_file(private_key, message):
+#    """
+#    Signs a message using ECDSA.
 
-    Args:
-        private_key:    Private key of this peer.
-        message:        Message to be signed.
+#    Args:
+#        private_key:    Private key of this peer.
+#        message:        Message to be signed.
 
-    Return:
-        Digital signature of signed message to increase authentication.
+#    Return:
+#        Digital signature of signed message to increase authentication.
 
-    """
-    return 0
-
-
-def verify_signa(public_key, message, signature):
-    """
-    Verifies a message signature using ECDSA.
-
-    Args:
-        public_key: Public key of this peer.
-        message:    Signed message.
-        signature:  Signature of this message.
-
-    Return:
-        Verification, if signature is right.
-
-    Exceptions:
-        Raised if the signature does not match the message.
-    """
-    try:
-        public_key.verify(signature, message, ec.ECDSA(hashes.SHA256()))
-        return True
-    except InvalidSignature:
-        return False
+#    """
+#    return 0
 
 
 def send_messages(connection, peer_name, encryptor, signature_priv_key, signature_name):
@@ -138,10 +115,20 @@ def send_messages(connection, peer_name, encryptor, signature_priv_key, signatur
         if message.lower() == 'quit':
             connection.send(b'quit')
             break
+
+        # print("Key type:", type(signature_priv_key))
+        # print("Signature name:", signature_name)
+
+        # Prepare the message by prefixing the username
         full_message = f"{peer_name}: {message}"
+        # Sign the message
         signature = sign_message(signature_priv_key, full_message.encode('utf-8'), signature_name)
+        # Encode signature in hex and append to the message
         full_message += '|' + signature.hex()
+
+        # Encrypt the entire message, including the signature
         encrypted_message = encryptor.update(full_message.encode('utf-8')) + encryptor.finalize()
+
         try:
             connection.send(encrypted_message)
             print(f"Sent encrypted message: {encrypted_message.hex()}")
@@ -169,8 +156,14 @@ def receive_messages(connection, decryptor, signature_pub_key, signature_name):
             if not encrypted_message:
                 print("Peer disconnected.")
                 break
+
+            # Decrypt the received message
             message = decryptor.update(encrypted_message) + decryptor.finalize()
+
+            # Split message and its signature
             message, signature_hex = message.rsplit(b'|', 1)
+
+            # Verify the signature
             if verify_signature(signature_pub_key, message, bytes.fromhex(signature_hex.decode()), signature_name):
                 print("Decrypted and verified message:", message.decode('utf-8'))
             else:
@@ -214,6 +207,20 @@ def exchange_keys(connection, bob_priv_key, is_server):
     alice_pub_key = serialization.load_pem_public_key(peer_public_key_bytes)
     bob_shared_key = ECDH.shared_ecdh_key(bob_priv_key, alice_pub_key)
 
+    # Serialize the shared key for transmission
+    shared_key_bytes = bob_shared_key.hex().encode('utf-8')  # Assuming shared_key is bytes-compatible
+
+    # Exchange the shared key
+    if is_server:
+        connection.send(shared_key_bytes)  # Server sends the shared key
+        peer_shared_key_bytes = connection.recv(1024)
+    else:
+        peer_shared_key_bytes = connection.recv(1024)
+        connection.send(shared_key_bytes)  # Client sends the shared key
+
+    # Confirm that both shared keys match (optional step for additional security)
+    assert shared_key_bytes == peer_shared_key_bytes, "Shared keys do not match!"
+
     base_dir = "../Keys/ECDH/Bob"
     os.makedirs(base_dir, exist_ok=True)
     ECDH.save_ecdh_keys(bob_pub_key, bob_shared_key, base_dir)
@@ -231,10 +238,22 @@ def exchange_keys(connection, bob_priv_key, is_server):
 
 def exchange_signature_keys(connection, local_signature_pub_key, is_server):
     """Exchange signature public keys between two communication parties."""
+    # Ensure the public key is not already bytes and is the correct key object
+    if not isinstance(local_signature_pub_key, (ec.EllipticCurvePublicKey, ed25519.Ed25519PublicKey)):
+        raise TypeError("Provided public key is not a valid public key object.")
+
     local_pub_key_bytes = ECDH.serialize_pub_key(local_signature_pub_key)
-    if not is_server:
+
+    if is_server:
+        # Server sends first, then receives
+        connection.send(local_pub_key_bytes)
+        peer_pub_key_bytes = connection.recv(1024)
+    else:
+        # Client receives first, then sends
         peer_pub_key_bytes = connection.recv(1024)
         connection.send(local_pub_key_bytes)
+
+    # Convert received bytes back to public key
     peer_signature_pub_key = serialization.load_pem_public_key(peer_pub_key_bytes)
     return peer_signature_pub_key
 
@@ -305,10 +324,10 @@ def main():
     peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     peer_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    curve_name = input("Enter the curve name, must be the same for both peers (e.g., SECP384R1, SECP521R1): ")
+    curve_name = input("Enter the ECDH curve name, must be the same for both peers (e.g., SECP384R1, SECP521R1): ")
     signature_name = input("Enter algorithm for digital signature (e.g., ECDSA, EdDSA): ")
     bob_priv_key, bob_pub_key = ECDH.generate_ecdh_keys(curve_name)
-    signature_private_key, signature_public_key = key_generation(signature_name, 'bob_priv.pem', 'bob_pub.pem')
+
     if not attempt_connection(peer_socket):
         # Act as server
         is_server = True
@@ -319,7 +338,13 @@ def main():
         print("Connected to Alice.")
 
     encryptor, decryptor, alice_pub_key = exchange_keys(peer_socket, bob_priv_key, is_server)
-    peer_signature_pub_key = exchange_signature_keys(peer_socket, signature_public_key, is_server=False)
+
+    # Generate signature keys (replace 'ECDSA' with your desired algorithm, e.g., 'EdDSA')
+    signature_private_key, signature_public_key = key_generation(signature_name, 'bob_priv.pem', 'bob_pub.pem')
+
+    # Exchange signature public keys (assuming the exchange_keys function can be adjusted to handle this)
+    peer_signature_pub_key = exchange_signature_keys(peer_socket, signature_public_key, is_server)
+
     # Starting threads for sending and receiving messages
     receiver_thread = threading.Thread(target=receive_messages,
                                        args=(peer_socket, decryptor, peer_signature_pub_key, signature_name))

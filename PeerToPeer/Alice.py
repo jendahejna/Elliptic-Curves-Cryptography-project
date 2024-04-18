@@ -38,7 +38,6 @@ from cryptography.hazmat.primitives.asymmetric import ec, ed25519
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.exceptions import InvalidSignature
 from Protocols.signature import key_generation, sign_message, verify_signature
 
 
@@ -77,20 +76,19 @@ def create_encryptor_decryptor(key, iv=None):
     return cipher.encryptor(), cipher.decryptor(), iv
 
 
-###
-def sign_file(private_key, message):
-    """
-    Signs a message using ECDSA.
+# def sign_file(private_key, message):
+#    """
+#    Signs a message using ECDSA.
 
-    Args:
-        private_key:    Private key of this peer.
-        message:        Message to be signed.
+#    Args:
+#        private_key:    Private key of this peer.
+#        message:        Message to be signed.
 
-    Return:
-        Digital signature of signed message to increase authentication.
+#    Return:
+#        Digital signature of signed message to increase authentication.
 
-    """
-    return 0
+#    """
+#    return 0
 
 
 def send_messages(connection, peer_name, encryptor, signature_priv_key, signature_name):
@@ -118,8 +116,8 @@ def send_messages(connection, peer_name, encryptor, signature_priv_key, signatur
             connection.send(b'quit')  # Send quit signal
             break
 
-        print("Key type:", type(signature_priv_key))
-        print("Signature name:", signature_name)
+        # print("Key type:", type(signature_priv_key))
+        # print("Signature name:", signature_name)
 
         # Prepare the message by prefixing the username
         full_message = f"{peer_name}: {message}"
@@ -164,6 +162,7 @@ def receive_messages(connection, decryptor, signature_pub_key, signature_name):
 
             # Split message and its signature
             message, signature_hex = message.rsplit(b'|', 1)
+
             # Verify the signature
             if verify_signature(signature_pub_key, message, bytes.fromhex(signature_hex.decode()), signature_name):
                 print("Decrypted and verified message:", message.decode('utf-8'))
@@ -207,6 +206,20 @@ def exchange_keys(connection, alice_priv_key, is_server):
 
     bob_pub_key = serialization.load_pem_public_key(peer_public_key_bytes)
     alice_shared_key = ECDH.shared_ecdh_key(alice_priv_key, bob_pub_key)
+
+    # Serialize the shared key for transmission
+    shared_key_bytes = alice_shared_key.hex().encode('utf-8')  # Assuming shared_key is bytes-compatible
+
+    # Exchange the shared key
+    if is_server:
+        connection.send(shared_key_bytes)  # Server sends the shared key
+        peer_shared_key_bytes = connection.recv(1024)
+    else:
+        peer_shared_key_bytes = connection.recv(1024)
+        connection.send(shared_key_bytes)  # Client sends the shared key
+
+    # Confirm that both shared keys match (optional step for additional security)
+    assert shared_key_bytes == peer_shared_key_bytes, "Shared keys do not match!"
 
     base_dir = "../Keys/ECDH/Alice"
     os.makedirs(base_dir, exist_ok=True)

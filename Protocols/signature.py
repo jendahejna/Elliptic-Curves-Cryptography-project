@@ -11,19 +11,19 @@ def key_generation(signature_name, sk_pem_name, vk_pem_name):
     os.makedirs(base_path, exist_ok=True)
 
     if signature_name == "ECDSA":
+        # print("ECDSA key generating.")
         private_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
         public_key = private_key.public_key()
         private_format = serialization.PrivateFormat.TraditionalOpenSSL
         public_format = serialization.PublicFormat.SubjectPublicKeyInfo
-        print("ECDSA key generating")
     elif signature_name == "EdDSA":
-        print("EdDSA key generating")
+        # print("EdDSA key generating.")
         private_key = ed25519.Ed25519PrivateKey.generate()
         public_key = private_key.public_key()
         private_format = serialization.PrivateFormat.PKCS8
         public_format = serialization.PublicFormat.SubjectPublicKeyInfo
     else:
-        raise ValueError("Unsupported key type")
+        raise ValueError("Unsupported key type.")
 
     sk_pem = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
@@ -43,8 +43,8 @@ def key_generation(signature_name, sk_pem_name, vk_pem_name):
     with open(public_key_path, "wb") as f:
         f.write(vk_pem)
 
+    # print("Finished generating.")
     return private_key, public_key
-
 
 
 def sign_message(private_key, message, signature_name):
