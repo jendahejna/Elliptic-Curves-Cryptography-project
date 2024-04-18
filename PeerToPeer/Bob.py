@@ -316,8 +316,8 @@ def main():
     encryptor, decryptor, alice_pub_key = exchange_keys(peer_socket, bob_priv_key, is_server)
     peer_signature_pub_key = exchange_signature_keys(peer_socket, signature_public_key, is_server=False)
     # Starting threads for sending and receiving messages
-    receiver_thread = threading.Thread(target=receive_messages, args=(peer_socket, decryptor, alice_pub_key, signature_name))
-    sender_thread = threading.Thread(target=send_messages, args=(peer_socket, peer_name, encryptor, bob_priv_key, signature_name))
+    receiver_thread = threading.Thread(target=receive_messages, args=(peer_socket, decryptor, peer_signature_pub_key, signature_name))
+    sender_thread = threading.Thread(target=send_messages, args=(peer_socket, peer_name, encryptor, signature_private_key, signature_name))
 
     receiver_thread.start()
     sender_thread.start()

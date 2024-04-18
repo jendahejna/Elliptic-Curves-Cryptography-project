@@ -76,6 +76,7 @@ def create_encryptor_decryptor(key, iv=None):
     cipher = Cipher(algorithms.AES(key), modes.CFB(iv))
     return cipher.encryptor(), cipher.decryptor(), iv
 
+
 ###
 def sign_file(private_key, message):
     """
@@ -90,6 +91,8 @@ def sign_file(private_key, message):
 
     """
     return 0
+
+
 ###
 
 def signature(public_key, message, signature):
@@ -349,13 +352,15 @@ def main():
     signature_private_key, signature_public_key = key_generation(signature_name, 'alice_priv.pem', 'alice_pub.pem')
 
     # Exchange signature public keys (assuming the exchange_keys function can be adjusted to handle this)
-    exchange_signature_keys(peer_socket, signature_public_key, is_server)
+
+
+    peer_signature_pub_key = exchange_signature_keys(peer_socket, signature_public_key, is_server)
 
     # Starting threads for sending and receiving messages
     receiver_thread = threading.Thread(target=receive_messages,
-                                       args=(peer_socket, decryptor, bob_pub_key, signature_name))
+                                   args=(peer_socket, decryptor, peer_signature_pub_key, signature_name))
     sender_thread = threading.Thread(target=send_messages,
-                                     args=(peer_socket, peer_name, encryptor, alice_priv_key, signature_name))
+                                 args=(peer_socket, peer_name, encryptor, signature_private_key, signature_name))
 
     receiver_thread.start()
     sender_thread.start()
@@ -365,7 +370,6 @@ def main():
 
     peer_socket.close()
     print("Chat ended.")
-
 
 if __name__ == "__main__":
     main()
