@@ -10,11 +10,17 @@ Functions:
     send_messages:              Sends encrypted and signed messages from the user over a given connection.
     receive_messages:           Receives, decrypts, and verifies encrypted messages over a given connection.
     exchange_keys:              Exchanges public keys and establishes encryption.
-    main:                       Demonstrates created functions and their implementation.
     attempt_connection:         Attempts to establish a connection to a specified target using the given socket.
-    create_server:              Creates a server socket, binds it to a local address, and listens for incoming client connections.
+    create_server:              Creates a server socket, binds it to a local address, listens for incoming connections.
+    main:                       Demonstrates created functions and their implementation.
 
 File authors:
+    Jan Hejna, 221545
+    Daniel Kluka, 203251
+    Jan Rezek, 227374
+    Michal Rosa, 221012
+
+Documentation author:
     Daniel Kluka, 203251
 
 Version:
@@ -221,6 +227,47 @@ def exchange_keys(connection, alice_priv_key, is_server):
     return encryptor, decryptor, bob_pub_key
 
 
+def attempt_connection(peer_socket, target=('localhost', 8080)):
+    """
+    Attempts to establish a connection to a specified target using the given socket.
+
+    Args:
+        peer_socket:    The socket object configured for network communication.
+        target:         A tuple containing the target host address and port number.
+
+    Returns:
+        Returns True if the connection is successfully established, False if not.
+
+    Exceptions:
+        This function catches this specific exception to return False.
+    """
+    try:
+        peer_socket.connect(target)
+        return True
+    except ConnectionRefusedError:
+        return False
+
+
+def create_server():
+    """
+    Creates a server socket, binds it to a local address, and listens for incoming client connections.
+
+    Returns:
+        socket: Returns the client connection socket object, which can be used to send and receive data.
+
+    Exceptions:
+        Socket-related exceptions can occur during socket creation, binding, listening, or accepting connections.
+    """
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server_socket.bind(('localhost', 8080))
+    server_socket.listen(1)
+    print("Waiting for connection on port 8080.")
+    connection, address = server_socket.accept()
+    print(f"Connection established with Bob {address}")
+    return connection
+
+
 def main():
     """
     Initializes and runs the main functionality for Alice's side of a secure chat application.
@@ -272,47 +319,6 @@ def main():
 
     peer_socket.close()
     print("Chat ended.")
-
-
-def attempt_connection(peer_socket, target=('localhost', 8080)):
-    """
-    Attempts to establish a connection to a specified target using the given socket.
-
-    Args:
-        peer_socket:    The socket object configured for network communication.
-        target:         A tuple containing the target host address and port number.
-
-    Returns:
-        Returns True if the connection is successfully established, False if not.
-
-    Exceptions:
-        This function catches this specific exception to return False.
-    """
-    try:
-        peer_socket.connect(target)
-        return True
-    except ConnectionRefusedError:
-        return False
-
-
-def create_server():
-    """
-    Creates a server socket, binds it to a local address, and listens for incoming client connections.
-
-    Returns:
-        socket: Returns the client connection socket object, which can be used to send and receive data.
-
-    Exceptions:
-        Socket-related exceptions can occur during socket creation, binding, listening, or accepting connections.
-    """
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server_socket.bind(('localhost', 8080))
-    server_socket.listen(1)
-    print("Waiting for connection on port 8080.")
-    connection, address = server_socket.accept()
-    print(f"Connection established with Bob {address}")
-    return connection
 
 
 if __name__ == "__main__":
