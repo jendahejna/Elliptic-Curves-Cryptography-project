@@ -82,20 +82,3 @@ def verify_signature(public_key, message, signature, signature_name):
     except InvalidSignature:
         return False
 
-# Set the type of signature we want to test, e.g., "ECDSA" or "EdDSA"
-signature_type = "EdDSA"
-
-# Generate keys
-private_key, public_key = key_generation(signature_type, "private_key.pem", "public_key.pem")
-
-# Define the message we want to sign
-message = b"Hello, this is a test message!"
-
-# Sign the message
-signature = sign_message(private_key, message, signature_type)
-
-# Verify the signature
-verification_result = verify_signature(public_key, message, signature, signature_type)
-
-# Results
-print("Signature valid:", verification_result)
