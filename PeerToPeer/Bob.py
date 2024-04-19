@@ -92,7 +92,6 @@ def create_encryptor_decryptor(key, iv=None):
 #    """
 #    return 0
 
-
 def send_messages(connection, peer_name, bob_shared_key, ecies_type, signature_priv_key, signature_name):
     """
     Sends encrypted and signed messages from the user over a given connection.
@@ -114,14 +113,31 @@ def send_messages(connection, peer_name, bob_shared_key, ecies_type, signature_p
         sending process, mainly focusing on connection issues.
     """
     separator = b"||"
+    files_to_send_dir = "./PeerToPeer/FilesToSend/"
+    received_files_dir = "./PeerToPeer/ReceivedFiles/"
+    os.makedirs(received_files_dir, exist_ok=True)
+
     while True:
-        message = input("Enter your message ('quit' to exit): ")
-        if message.lower() == 'quit':
+        command = input("Enter your message or type 'sendFile' to send a file: ")
+        if command.lower() == 'quit':
             connection.send(b'quit')
             break
 
+        if command.lower() == 'sendfile':
+            filename = input("Enter the filename to send: ")
+            filepath = os.path.join(files_to_send_dir, filename)
+            if os.path.exists(filepath):
+                with open(filepath, 'rb') as f:
+                    file_data = f.read()
+                file_message = f"FILE::{filename}||".encode() + file_data
+                connection.send(file_message)
+                print(f"Sent file: {filename}")
+            else:
+                print(f"File not found: {filename}")
+            continue
+
         # Encode the full message
-        full_message = f"{peer_name}: {message}".encode('utf-8')
+        full_message = f"{peer_name}: {command}".encode('utf-8')
         # Sign the message
         signature = sign_message(signature_priv_key, full_message, signature_name)
         # Encrypt the entire message including the signature
@@ -141,7 +157,6 @@ def send_messages(connection, peer_name, bob_shared_key, ecies_type, signature_p
             print("Failed to send message. Error:", e)
             break
 
-
 def receive_messages(connection, alice_shared_key, ecies_type, signature_pub_key, signature_name):
     """
     Receives, decrypts, and verifies encrypted messages over a given connection.
@@ -157,30 +172,41 @@ def receive_messages(connection, alice_shared_key, ecies_type, signature_pub_key
         General exception handling to catch and handle unexpected errors
     """
     separator = b"||"
+    received_files_dir = "./PeerToPeer/ReceivedFiles/"
+    os.makedirs(received_files_dir, exist_ok=True)
     while True:
         try:
             encrypted_message = connection.recv(2048)  # Increased buffer size
             print(f"Received encrypted message: {encrypted_message.hex()}")
 
             parts = encrypted_message.split(separator)
-            if len(parts) < 4:
-                print("Invalid message format, some parts for decryption is missing. Parts count:", len(parts))
-                continue
+            if len(parts) == 3:
+                # Assuming messages with three parts are regular encrypted messages with format: nonce_iv||ciphertext||signature
+                nonce_iv, ciphertext, signature = parts
 
-            nonce_iv, ciphertext, mac, signature = parts
+                # Decrypt the message
+                if ecies_type == "ChaCha":
+                    ecies_key, hmac_key = derive_encryption_parameters(alice_shared_key)
+                    message = decrypt_message_chacha(ecies_key, nonce_iv, ciphertext)
+                elif ecies_type == "AES":
+                    aes_key, hmac_key = derive_encryption_parameters(alice_shared_key)
+                    message = decrypt_message_aes(aes_key, nonce_iv, ciphertext)
 
-            if ecies_type == "ChaCha":
-                ecies_key, hmac_key = derive_encryption_parameters(alice_shared_key)
-                message = decrypt_message_chacha(ecies_key, nonce_iv, ciphertext)
-            elif ecies_type == "AES":
-                aes_key, hmac_key = derive_encryption_parameters(alice_shared_key)
-                message = decrypt_message_aes(aes_key, nonce_iv, ciphertext)
-
-            if message and verify_signature(signature_pub_key, message, signature, signature_name):
-                print("Decrypted and verified message:", message.decode('utf-8'))
+                # Verify the signature
+                if message and verify_signature(signature_pub_key, message, signature, signature_name):
+                    print(f"Decrypted and verified message: {message.decode('utf-8')}")
+                else:
+                    print("Failed to verify message signature or message is None.")
+            elif len(parts) == 2:
+                # Handling file messages assuming format: FILE::filename||filedata
+                filename = parts[0].split(b"::")[1].decode()
+                file_data = parts[1]
+                filepath = os.path.join(received_files_dir, filename)
+                with open(filepath, 'wb') as f:
+                    f.write(file_data)
+                print(f"Received and saved file: {filename}")
             else:
-                print("Failed to verify message signature or message is None.")
-
+                print("Invalid message format, parts count:", len(parts))
         except Exception as e:
             print("Connection lost. Error:", e)
             break
