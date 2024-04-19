@@ -78,20 +78,6 @@ def create_encryptor_decryptor(key, iv=None):
     return cipher.encryptor(), cipher.decryptor(), iv
 
 
-# def sign_file(private_key, message):
-#    """
-#    Signs a message using ECDSA.
-
-#    Args:
-#        private_key:    Private key of this peer.
-#        message:        Message to be signed.
-
-#    Return:
-#        Digital signature of signed message to increase authentication.
-
-#    """
-#    return 0
-
 
 def send_messages(connection, peer_name, alice_shared_key, ecies_type, signature_priv_key, signature_name):
     """
@@ -100,10 +86,10 @@ def send_messages(connection, peer_name, alice_shared_key, ecies_type, signature
     Args:
         connection:         The communication channel used to send encrypted messages.
         peer_name:          Name of this peer.
-        alice_shared_key:   Data encryptor object.
+        alice_shared_key:   The shared secret key derived during the cryptographic session initialization, used for encrypting message.
         ecies_type:         The type of symmetric encryption used in the ECIES scheme (AES, ChaCha).
         signature_priv_key: Private key of this peer.
-        signature_name:     Specifies the type of signature scheme (ECDSA, EdDSA).
+        signature_name:     Specifies the type of signature scheme (ECDSA, EdDSA)
 
     Returns:
         The function returns None as it is designed to run indefinitely until
@@ -147,11 +133,11 @@ def receive_messages(connection, alice_shared_key, ecies_type, signature_pub_key
     Receives, decrypts, and verifies encrypted messages over a given connection.
 
     Parameters:
-        connection: The communication channel used to receive encrypted messages.
-        alice_shared_key: The shared secret key, used for decrypting the encrypted message.
-        ecies_type: The type of symmetric encryption used in the ECIES scheme (AES, ChaCha).
-        signature_pub_key: Public key of other peer.
-        signature_name: Specifies the type of signature scheme (ECDSA, EdDSA).
+        connection:         The communication channel used to receive encrypted messages.
+        alice_shared_key:   The shared secret key derived during the cryptographic session initialization, used for decrypting the encrypted message.
+        ecies_type:         The type of symmetric encryption used in the ECIES scheme (AES, ChaCha).
+        signature_pub_key:  Public key of other peer.
+        signature_name:     Specifies the type of signature scheme (ECDSA, EdDSA)
 
     Exceptions:
         General exception handling to catch and handle unexpected errors
@@ -159,7 +145,7 @@ def receive_messages(connection, alice_shared_key, ecies_type, signature_pub_key
     separator = b"||"
     while True:
         try:
-            encrypted_message = connection.recv(1024)  # Increased buffer size
+            encrypted_message = connection.recv(2048)  # Increased buffer size
             print(f"Received encrypted message: {encrypted_message.hex()}")
 
             parts = encrypted_message.split(separator)
@@ -250,7 +236,25 @@ def exchange_keys(connection, alice_priv_key, is_server):
 
 
 def exchange_signature_keys(connection, local_signature_pub_key, is_server):
-    """Exchange signature public keys between two communication parties."""
+    """
+    Exchange signature public keys between two communication parties.
+
+    Args:
+        connection: Active socket connection for data exchange.
+        local_signature_pub_key: Local user's public key.
+        is_server: Indicates if the local party is the server (True) or the client (False). If True, sends first and receives second; if False, receives first and sends second.
+
+    Returns:
+        peer_signature_pub_key: The remote party's public key, deserialized from PEM format, for verifying signatures.
+
+    Raises:
+        TypeError: If `local_signature_pub_key` is not the correct type, indicating an invalid key.
+
+    Notes:
+        Keys are transmitted in PEM format and deserialized upon receipt to maintain cryptographic integrity and operability.
+    """
+
+
     # Ensure the public key is not already bytes and is the correct key object
     if not isinstance(local_signature_pub_key, (ec.EllipticCurvePublicKey, ed25519.Ed25519PublicKey)):
         raise TypeError("Provided public key is not a valid public key object.")
