@@ -19,7 +19,7 @@ Dependencies:
 
 """
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ec, ed25519
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519,rsa
 from cryptography.hazmat.backends import default_backend
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
@@ -27,7 +27,7 @@ import os
 
 
 
-def key_generation(signature_name, sk_pem_name, vk_pem_name):
+def key_generation(signature_name, sk_pem_name, vk_pem_name, password):
     """
        Generates a pair of private and public keys, saves them as PEM files.
 
@@ -35,7 +35,7 @@ def key_generation(signature_name, sk_pem_name, vk_pem_name):
            signature_name:  The type of signature ('ECDSA' or 'EdDSA').
            sk_pem_name:     Filename for the private key PEM file.
            vk_pem_name:     Filename for the public key PEM file.
-
+           password:        Used for encrypting saved private key.
        Raises:
            ValueError: If an unsupported key type is provided.
 
@@ -44,6 +44,7 @@ def key_generation(signature_name, sk_pem_name, vk_pem_name):
        """
     base_path = "../Keys/Signature/" + signature_name
     os.makedirs(base_path, exist_ok=True)
+
 
     if signature_name == "ECDSA":
         # print("ECDSA key generating.")
@@ -63,7 +64,7 @@ def key_generation(signature_name, sk_pem_name, vk_pem_name):
     sk_pem = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=private_format,
-        encryption_algorithm=serialization.NoEncryption()
+        encryption_algorithm=serialization.BestAvailableEncryption(password.encode())
     )
     vk_pem = public_key.public_bytes(
         encoding=serialization.Encoding.PEM,
@@ -142,4 +143,3 @@ def verify_signature(public_key, message, signature, signature_name):
         return True
     except InvalidSignature:
         return False
-
