@@ -100,9 +100,10 @@ def send_messages(connection, peer_name, alice_shared_key, ecies_type, signature
     Args:
         connection:         The communication channel used to send encrypted messages.
         peer_name:          Name of this peer.
-        encryptor:          Data encryptor object.
+        alice_shared_key:   Data encryptor object.
+        ecies_type:         The type of symmetric encryption used in the ECIES scheme (AES, ChaCha).
         signature_priv_key: Private key of this peer.
-        signature_name:
+        signature_name:     Specifies the type of signature scheme (ECDSA, EdDSA).
 
     Returns:
         The function returns None as it is designed to run indefinitely until
@@ -147,9 +148,10 @@ def receive_messages(connection, alice_shared_key, ecies_type, signature_pub_key
 
     Parameters:
         connection: The communication channel used to receive encrypted messages.
-        decryptor:  Data decryptor object.
+        alice_shared_key: The shared secret key, used for decrypting the encrypted message.
+        ecies_type: The type of symmetric encryption used in the ECIES scheme (AES, ChaCha).
         signature_pub_key: Public key of other peer.
-        signature_name:
+        signature_name: Specifies the type of signature scheme (ECDSA, EdDSA).
 
     Exceptions:
         General exception handling to catch and handle unexpected errors
@@ -157,7 +159,7 @@ def receive_messages(connection, alice_shared_key, ecies_type, signature_pub_key
     separator = b"||"
     while True:
         try:
-            encrypted_message = connection.recv(2048)  # Increased buffer size
+            encrypted_message = connection.recv(1024)  # Increased buffer size
             print(f"Received encrypted message: {encrypted_message.hex()}")
 
             parts = encrypted_message.split(separator)

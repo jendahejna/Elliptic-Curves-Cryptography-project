@@ -157,7 +157,7 @@ def receive_messages(connection, alice_shared_key, ecies_type, signature_pub_key
     separator = b"||"
     while True:
         try:
-            encrypted_message = connection.recv(2048)  # Increased buffer size
+            encrypted_message = connection.recv(1024)  # Increased buffer size
             print(f"Received encrypted message: {encrypted_message.hex()}")
 
             parts = encrypted_message.split(separator)
