@@ -39,30 +39,8 @@ from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from Protocols.signature import key_generation, sign_message, verify_signature
-<<<<<<< Updated upstream
 from Protocols.ECIES import derive_encryption_parameters, encryption_chacha, encryption_aes, decrypt_message_aes, \
     decrypt_message_chacha, verify_hmac
-=======
-import logging
-
-
-# Configure logging
-log_directory = "./Logs"
-log_filename = "alice_peer.log"
-
-# Vytvorenie priečinka, ak neexistuje
-if not os.path.exists(log_directory):
-    os.makedirs(log_directory)
-
-log_path = os.path.join(log_directory, log_filename)
-
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s - %(levelname)s - %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    filename=log_path,
-                    filemode='w')
-logger = logging.getLogger('AlicePeer')
->>>>>>> Stashed changes
 
 
 def derive_key(shared_key):
@@ -96,7 +74,6 @@ def create_encryptor_decryptor(key, iv=None):
     """
     if iv is None:
         iv = os.urandom(16)
-        logger.debug("Generated new IV for AES encryption.")
     cipher = Cipher(algorithms.AES(key), modes.CFB(iv))
     return cipher.encryptor(), cipher.decryptor(), iv
 
@@ -139,12 +116,7 @@ def send_messages(connection, peer_name, alice_shared_key, ecies_type, signature
     while True:
         message = input("Enter your message ('quit' to exit): ")
         if message.lower() == 'quit':
-<<<<<<< Updated upstream
             connection.send(b'quit')
-=======
-            logger.info("User initiated quit.")
-            connection.send(b'quit')  # Send quit signal
->>>>>>> Stashed changes
             break
 
         # Encode the full message
@@ -162,16 +134,9 @@ def send_messages(connection, peer_name, alice_shared_key, ecies_type, signature
             final_message = iv + separator + encrypted_message + separator + mac + separator + signature
 
         try:
-<<<<<<< Updated upstream
             connection.send(final_message)
             print(f"Sent encrypted message: {final_message.hex()}")
-=======
-            connection.send(encrypted_message)
-            logger.debug(f"Sent encrypted and signed message: {encrypted_message.hex()}")
-            print(f"Sent encrypted message: {encrypted_message.hex()}")
->>>>>>> Stashed changes
         except Exception as e:
-            logger.error(f"Failed to send message. Error: {e}", exc_info=True)
             print("Failed to send message. Error:", e)
             break
 
@@ -192,16 +157,8 @@ def receive_messages(connection, alice_shared_key, ecies_type, signature_pub_key
     separator = b"||"
     while True:
         try:
-<<<<<<< Updated upstream
             encrypted_message = connection.recv(2048)  # Increased buffer size
             print(f"Received encrypted message: {encrypted_message.hex()}")
-=======
-            encrypted_message = connection.recv(1024)
-            if not encrypted_message:
-                logger.warning("Peer disconnected.")
-                print("Peer disconnected.")
-                break
->>>>>>> Stashed changes
 
             parts = encrypted_message.split(separator)
             if len(parts) < 4:
@@ -210,7 +167,6 @@ def receive_messages(connection, alice_shared_key, ecies_type, signature_pub_key
 
             nonce_iv, ciphertext, mac, signature = parts
 
-<<<<<<< Updated upstream
             if ecies_type == "ChaCha":
                 ecies_key, hmac_key = derive_encryption_parameters(alice_shared_key)
                 message = decrypt_message_chacha(ecies_key, nonce_iv, ciphertext)
@@ -223,17 +179,7 @@ def receive_messages(connection, alice_shared_key, ecies_type, signature_pub_key
             else:
                 print("Failed to verify message signature or message is None.")
 
-=======
-            # Verify the signature
-            if verify_signature(signature_pub_key, message, bytes.fromhex(signature_hex.decode()), signature_name):
-                logger.info(f"Decrypted and verified message: {message.decode('utf-8')}")
-                print("Decrypted and verified message:", message.decode('utf-8'))
-            else:
-                logger.warning("Failed to verify message signature.")
-                print("Failed to verify message signature.")
->>>>>>> Stashed changes
         except Exception as e:
-            logger.error(f"Connection lost. Error: {e}", exc_info=True)
             print("Connection lost. Error:", e)
             break
 
@@ -341,7 +287,6 @@ def attempt_connection(peer_socket, target=('localhost', 8080)):
         peer_socket.connect(target)
         return True
     except ConnectionRefusedError:
-        logger.error("Failed to create server or accept connection.", exc_info=True)
         return False
 
 
@@ -359,10 +304,8 @@ def create_server():
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind(('localhost', 8080))
     server_socket.listen(1)
-    logger.info("Alice is waiting for a connection on port 8080.")
-    print("Alice is waiting for connection on port 8080.")
+    print("Waiting for connection on port 8080.")
     connection, address = server_socket.accept()
-    logger.info(f"Connection established with Bob at {address}")
     print(f"Connection established with Bob {address}")
     return connection
 
