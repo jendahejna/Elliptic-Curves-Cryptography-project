@@ -5,9 +5,11 @@ from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 from Protocols.ECDH import *
 
 
-
 def derive_encryption_parameters(shared_key):
-    """Derive AES and HMAC keys from the shared ECDH key."""
+    """
+    Derive AES and HMAC keys from the shared ECDH key.
+    Uses HKDF with SHA-256 to generate a 64-byte output, split into two 32-byte keys.
+    """
     hkdf = HKDF(
         algorithm=hashes.SHA256(),
         length=64,  # 32 bytes for AES key, 32 bytes for HMAC key
@@ -20,11 +22,11 @@ def derive_encryption_parameters(shared_key):
     return ecies_key, hmac_key
 
 
-#*******"
-#* AES *"
-#*******"
 def encrypt_message_aes(aes_key, message):
-    """Encrypts a message using AES-CFB and returns ciphertext and IV."""
+    """
+    Encrypts a message using AES-CFB, returns the IV and ciphertext.
+    Generates a random IV for each encryption.
+    """
     iv = os.urandom(16)
     cipher = Cipher(algorithms.AES(aes_key), modes.CFB(iv), backend=default_backend())
     encryptor = cipher.encryptor()
@@ -32,68 +34,73 @@ def encrypt_message_aes(aes_key, message):
     return iv, ciphertext
 
 
-
 def decrypt_message_aes(aes_key, iv, ciphertext):
-    """Decrypts a message using AES-CFB."""
+    """
+    Decrypts a message using AES-CFB.
+    Requires the IV and ciphertext.
+    """
     cipher = Cipher(algorithms.AES(aes_key), modes.CFB(iv), backend=default_backend())
     decryptor = cipher.decryptor()
     decrypted_message = decryptor.update(ciphertext) + decryptor.finalize()
     return decrypted_message
 
 
-
-#************
-#* ChaCha20 *
-#************
-
 def encrypt_message_chacha(chacha_key, message):
-    """Encrypts a message using ChaCha20 and returns ciphertext and nonce."""
-    nonce = os.urandom(12)  # ChaCha20 uses a 12-byte nonce
+    """
+    Encrypts a message using ChaCha20Poly1305, returns the nonce and ciphertext.
+    Generates a 12-byte nonce for each encryption.
+    """
+    nonce = os.urandom(12)
     cipher = ChaCha20Poly1305(chacha_key)
     ciphertext = cipher.encrypt(nonce, message, None)
     return nonce, ciphertext
 
+
 def decrypt_message_chacha(chacha_key, nonce, ciphertext):
-    """Decrypts a message using ChaCha20."""
+    """
+    Decrypts a message using ChaCha20Poly1305.
+    Requires the nonce and ciphertext.
+    """
     cipher = ChaCha20Poly1305(chacha_key)
     decrypted_message = cipher.decrypt(nonce, ciphertext, None)
     return decrypted_message
 
-#********"
-#* HMAC *"
-#********"
+
 def create_hmac(hmac_key, ciphertext):
-    """Creates an HMAC for the ciphertext."""
+    """
+    Creates an HMAC for the ciphertext using SHA-256.
+    """
     h = hmac.HMAC(hmac_key, hashes.SHA256(), backend=default_backend())
     h.update(ciphertext)
     return h.finalize()
 
+
 def verify_hmac(hmac_key, ciphertext, mac):
-    """Verifies the HMAC of the ciphertext."""
+    """
+    Verifies the HMAC of the ciphertext.
+    Throws an exception if verification fails.
+    """
     h = hmac.HMAC(hmac_key, hashes.SHA256(), backend=default_backend())
     h.update(ciphertext)
     h.verify(mac)
 
 
-# Deriving encryption parameters for Alice (could use Bob's as well)
-
-
-
-#
-# Alice sends a message using aes
 def encryption_aes(aes_key, hmac_key, message):
-    """Encrypt a message using AES and create an HMAC for the ciphertext."""
-    # Encrypt the message using AES
+    """
+    Encrypts a message using AES and appends an HMAC for verification.
+    Returns the IV, ciphertext, and MAC.
+    """
     iv, ciphertext = encrypt_message_aes(aes_key, message)
-    # Create HMAC for the encrypted message
     mac = create_hmac(hmac_key, ciphertext)
     return iv, ciphertext, mac
 
-#Alice sends a message using ChaCha
+
 def encryption_chacha(chacha_key, hmac_key, message):
+    """
+    Encrypts a message using ChaCha20Poly1305 and appends an HMAC for verification.
+    Returns the nonce, ciphertext, and MAC.
+    """
     nonce, ciphertext = encrypt_message_chacha(chacha_key, message)
     mac = create_hmac(hmac_key, ciphertext)
-    return nonce, ciphertext,mac
-
-
+    return nonce, ciphertext, mac
 
