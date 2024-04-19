@@ -1,0 +1,32 @@
+2024-04-19 22:22:56 - INFO - User selected: SECP384R1, ECDSA, ChaCha
+2024-04-19 22:22:56 - INFO - Generating ECDH keys.
+2024-04-19 22:22:56 - DEBUG - Generated ECDH Bob private key and public key.
+2024-04-19 22:22:56 - DEBUG - Attempted connection to localhost.
+2024-04-19 22:22:56 - INFO - Connected to Alice.
+2024-04-19 22:22:56 - INFO - Exchanging ECDH keys
+2024-04-19 22:22:56 - INFO - Bob connected as client for ECDH key exchange.
+2024-04-19 22:22:56 - DEBUG - Bob generated shared key: e0081d9ba44fcc50b6585bd76eac1f7e86acb3437415b71db0a1fc5fc2cc2146c3301cad3dd141af50cc075ee543adbe
+2024-04-19 22:22:56 - INFO - ECDH keys saved at: ../Keys/ECDH/Bob
+2024-04-19 22:22:56 - DEBUG - Generated new IV for AES encryption.
+2024-04-19 22:22:56 - DEBUG - Bob receives and uses IV.
+2024-04-19 22:22:56 - DEBUG - Generated new IV for AES encryption.
+2024-04-19 22:22:56 - DEBUG - Exchanged ECDH keys.
+2024-04-19 22:22:56 - INFO - Generating Bob's signature keys.
+2024-04-19 22:22:56 - DEBUG - Generated Bob's signature keys.
+2024-04-19 22:22:56 - INFO - Exchanging signature keys.
+2024-04-19 22:22:56 - INFO - Bob connected as client for signature exchange.
+2024-04-19 22:22:56 - DEBUG - Received peer signature public key.
+2024-04-19 22:22:56 - DEBUG - Exchanged signature keys.
+2024-04-19 22:22:56 - INFO - Starting receiver and sender threads.
+2024-04-19 22:22:56 - INFO - Started receiver and sender threads.
+2024-04-19 22:23:01 - DEBUG - User input message: sendFile
+2024-04-19 22:23:01 - INFO - User wants to send file
+2024-04-19 22:23:05 - INFO - File path: ./FilesToSend/test.txt
+2024-04-19 22:23:05 - INFO - Sent file: test.txt
+2024-04-19 22:23:11 - DEBUG - User input message: ahoooooj
+2024-04-19 22:23:11 - DEBUG - Sent encrypted and signed message: 17f29a6d22cdb0f7751baa4969788439a78362441e7c34b0a12cbed916
+2024-04-19 22:23:20 - INFO - Received encrypted message: 1aaba2b7e9a6f5a57476fc067c7cb91fa576ee1a331448c944f3a835aebc1f833a4611b7a37c7c3046022100c53d8d55ba5473efbd1f9fbd4e782cc88573c83e66c99c97b421873a12166a05022100a34fb137e38d949760d571910ee8a031cbdc548c23e792bbfe8b587e59d65cae
+2024-04-19 22:23:20 - INFO - Decrypted and verified message: Alice: 
+2024-04-19 22:23:20 - INFO - Received encrypted message: f289ecfa2cf35a9c81e38f907c7c4f6c3c70eedcfc04125fc4ca9dd407fea4fef1840231c535e185b38bd6d2716fa9d43b7c7c3045022100beb2d1cc4d8f61991472cf0de347d799849414ba2ee2c324448e9559f9ee5ea3022041c46e87e2db548a203cd543ba9a4e136ef38cef72ace1e2bc46b73e96d2e3e5
+2024-04-19 22:23:20 - INFO - Decrypted and verified message: Alice: ahoooooooooj
+2024-04-19 22:23:26 - INFO - Received encrypted message: 71756974
