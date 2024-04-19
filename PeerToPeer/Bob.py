@@ -113,8 +113,8 @@ def send_messages(connection, peer_name, bob_shared_key, ecies_type, signature_p
         sending process, mainly focusing on connection issues.
     """
     separator = b"||"
-    files_to_send_dir = "./PeerToPeer/FilesToSend/"
-    received_files_dir = "./PeerToPeer/ReceivedFiles/"
+    files_to_send_dir = "./FilesToSend/"
+    received_files_dir = "./ReceivedFiles/"
     os.makedirs(received_files_dir, exist_ok=True)
 
     while True:
@@ -144,11 +144,11 @@ def send_messages(connection, peer_name, bob_shared_key, ecies_type, signature_p
         if ecies_type == "ChaCha":
             ecies_key, hmac_key = derive_encryption_parameters(bob_shared_key)
             nonce, encrypted_message, mac = encryption_chacha(ecies_key, hmac_key, full_message)
-            final_message = nonce + separator + encrypted_message + separator + mac + separator + signature
+            final_message = nonce + separator + encrypted_message + separator + signature
         elif ecies_type == "AES":
             ecies_key, hmac_key = derive_encryption_parameters(bob_shared_key)
             iv, encrypted_message, mac = encryption_aes(ecies_key, hmac_key, full_message)
-            final_message = iv + separator + encrypted_message + separator + mac + separator + signature
+            final_message = iv + separator + encrypted_message + separator + signature
 
         try:
             connection.send(final_message)
@@ -172,7 +172,7 @@ def receive_messages(connection, alice_shared_key, ecies_type, signature_pub_key
         General exception handling to catch and handle unexpected errors
     """
     separator = b"||"
-    received_files_dir = "./PeerToPeer/ReceivedFiles/"
+    received_files_dir = "./ReceivedFiles/"
     os.makedirs(received_files_dir, exist_ok=True)
     while True:
         try:
