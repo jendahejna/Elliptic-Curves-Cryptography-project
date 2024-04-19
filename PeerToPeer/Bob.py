@@ -39,6 +39,8 @@ from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from Protocols.signature import key_generation, sign_message, verify_signature
+from Protocols.ECIES import derive_encryption_parameters, encryption_chacha, encryption_aes, decrypt_message_aes, \
+    decrypt_message_chacha, verify_hmac
 
 
 def derive_key(shared_key):
@@ -91,15 +93,15 @@ def create_encryptor_decryptor(key, iv=None):
 #    return 0
 
 
-def send_messages(connection, peer_name, encryptor, signature_priv_key, signature_name):
+def send_messages(connection, peer_name, bob_shared_key, ecies_type, signature_priv_key, signature_name):
     """
     Sends encrypted and signed messages from the user over a given connection.
 
     Args:
-        connection:     The communication channel used to send encrypted messages.
-        peer_name:      Name of this peer.
-        encryptor:      Data encryptor object.
-        signature_priv_key:    Private key of this peer.
+        connection:         The communication channel used to send encrypted messages.
+        peer_name:          Name of this peer.
+        encryptor:          Data encryptor object.
+        signature_priv_key: Private key of this peer.
         signature_name:
 
     Returns:
@@ -110,34 +112,36 @@ def send_messages(connection, peer_name, encryptor, signature_priv_key, signatur
         The function will catch and print any exceptions raised during the message
         sending process, mainly focusing on connection issues.
     """
+    separator = b"||"
     while True:
         message = input("Enter your message ('quit' to exit): ")
         if message.lower() == 'quit':
             connection.send(b'quit')
             break
 
-        # print("Key type:", type(signature_priv_key))
-        # print("Signature name:", signature_name)
-
-        # Prepare the message by prefixing the username
-        full_message = f"{peer_name}: {message}"
+        # Encode the full message
+        full_message = f"{peer_name}: {message}".encode('utf-8')
         # Sign the message
-        signature = sign_message(signature_priv_key, full_message.encode('utf-8'), signature_name)
-        # Encode signature in hex and append to the message
-        full_message += '|' + signature.hex()
-
-        # Encrypt the entire message, including the signature
-        encrypted_message = encryptor.update(full_message.encode('utf-8')) + encryptor.finalize()
+        signature = sign_message(signature_priv_key, full_message, signature_name)
+        # Encrypt the entire message including the signature
+        if ecies_type == "ChaCha":
+            ecies_key, hmac_key = derive_encryption_parameters(bob_shared_key)
+            nonce, encrypted_message, mac = encryption_chacha(ecies_key, hmac_key, full_message)
+            final_message = nonce + separator + encrypted_message + separator + mac + separator + signature
+        elif ecies_type == "AES":
+            ecies_key, hmac_key = derive_encryption_parameters(bob_shared_key)
+            iv, encrypted_message, mac = encryption_aes(ecies_key, hmac_key, full_message)
+            final_message = iv + separator + encrypted_message + separator + mac + separator + signature
 
         try:
-            connection.send(encrypted_message)
-            print(f"Sent encrypted message: {encrypted_message.hex()}")
+            connection.send(final_message)
+            print(f"Sent encrypted message: {final_message.hex()}")
         except Exception as e:
             print("Failed to send message. Error:", e)
             break
 
 
-def receive_messages(connection, decryptor, signature_pub_key, signature_name):
+def receive_messages(connection, alice_shared_key, ecies_type, signature_pub_key, signature_name):
     """
     Receives, decrypts, and verifies encrypted messages over a given connection.
 
@@ -150,24 +154,31 @@ def receive_messages(connection, decryptor, signature_pub_key, signature_name):
     Exceptions:
         General exception handling to catch and handle unexpected errors
     """
+    separator = b"||"
     while True:
         try:
-            encrypted_message = connection.recv(1024)
-            if not encrypted_message:
-                print("Peer disconnected.")
-                break
+            encrypted_message = connection.recv(2048)  # Increased buffer size
+            print(f"Received encrypted message: {encrypted_message.hex()}")
 
-            # Decrypt the received message
-            message = decryptor.update(encrypted_message) + decryptor.finalize()
+            parts = encrypted_message.split(separator)
+            if len(parts) < 4:
+                print("Invalid message format, some parts for decryption is missing. Parts count:", len(parts))
+                continue
 
-            # Split message and its signature
-            message, signature_hex = message.rsplit(b'|', 1)
+            nonce_iv, ciphertext, mac, signature = parts
 
-            # Verify the signature
-            if verify_signature(signature_pub_key, message, bytes.fromhex(signature_hex.decode()), signature_name):
+            if ecies_type == "ChaCha":
+                ecies_key, hmac_key = derive_encryption_parameters(alice_shared_key)
+                message = decrypt_message_chacha(ecies_key, nonce_iv, ciphertext)
+            elif ecies_type == "AES":
+                aes_key, hmac_key = derive_encryption_parameters(alice_shared_key)
+                message = decrypt_message_aes(aes_key, nonce_iv, ciphertext)
+
+            if message and verify_signature(signature_pub_key, message, signature, signature_name):
                 print("Decrypted and verified message:", message.decode('utf-8'))
             else:
-                print("Failed to verify message signature.")
+                print("Failed to verify message signature or message is None.")
+
         except Exception as e:
             print("Connection lost. Error:", e)
             break
@@ -233,7 +244,7 @@ def exchange_keys(connection, bob_priv_key, is_server):
     else:
         iv = connection.recv(16)  # Client receives IV
         encryptor, decryptor, _ = create_encryptor_decryptor(key, iv)  # Use existing IV
-    return encryptor, decryptor, alice_pub_key
+    return encryptor, decryptor, alice_pub_key, bob_shared_key
 
 
 def exchange_signature_keys(connection, local_signature_pub_key, is_server):
@@ -326,6 +337,7 @@ def main():
 
     curve_name = input("Enter the ECDH curve name, must be the same for both peers (e.g., SECP384R1, SECP521R1): ")
     signature_name = input("Enter algorithm for digital signature (e.g., ECDSA, EdDSA): ")
+    ecies_type = input("Which encryption method should be used for ECIES? Type 'ChaCha' or 'AES': ")
     bob_priv_key, bob_pub_key = ECDH.generate_ecdh_keys(curve_name)
 
     if not attempt_connection(peer_socket):
@@ -337,7 +349,7 @@ def main():
         is_server = False
         print("Connected to Alice.")
 
-    encryptor, decryptor, alice_pub_key = exchange_keys(peer_socket, bob_priv_key, is_server)
+    encryptor, decryptor, alice_pub_key, bob_shared_key = exchange_keys(peer_socket, bob_priv_key, is_server)
 
     # Generate signature keys (replace 'ECDSA' with your desired algorithm, e.g., 'EdDSA')
     signature_private_key, signature_public_key = key_generation(signature_name, 'bob_priv.pem', 'bob_pub.pem')
@@ -347,9 +359,11 @@ def main():
 
     # Starting threads for sending and receiving messages
     receiver_thread = threading.Thread(target=receive_messages,
-                                       args=(peer_socket, decryptor, peer_signature_pub_key, signature_name))
+                                       args=(peer_socket, bob_shared_key, ecies_type, peer_signature_pub_key,
+                                             signature_name))
     sender_thread = threading.Thread(target=send_messages,
-                                     args=(peer_socket, peer_name, encryptor, signature_private_key, signature_name))
+                                     args=(peer_socket, peer_name, bob_shared_key, ecies_type, signature_private_key,
+                                           signature_name))
 
     receiver_thread.start()
     sender_thread.start()
