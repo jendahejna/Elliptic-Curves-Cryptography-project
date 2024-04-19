@@ -120,8 +120,6 @@ def save_ecdh_keys(pub_key, shared_key, base_dir):
     with open(os.path.join(base_dir, "shared_key.bin"), "wb") as f:
         f.write(shared_key)
 
-    print("Keys successfully saved.")
-
 
 def main():
     """
@@ -157,6 +155,8 @@ def main():
     base_dir = "../Keys/ECDH/Demonstration/Bob"
     os.makedirs(base_dir, exist_ok=True)
     save_ecdh_keys(bob_pub_key, bob_shared_key, base_dir)
+
+    print("Keys successfully saved.")
 
 
 if __name__ == "__main__":

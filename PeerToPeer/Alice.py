@@ -119,8 +119,8 @@ def send_messages(connection, peer_name, alice_shared_key, ecies_type, signature
         sending process, mainly focusing on connection issues.
     """
     separator = b"||"
-    files_to_send_dir = "./FilesToSend/"
-    received_files_dir = "./ReceivedFiles/"
+    files_to_send_dir = "./Files/FilesToSend/"
+    received_files_dir = "./Files/ReceivedFiles/"
     os.makedirs(received_files_dir, exist_ok=True)
 
     while True:
@@ -189,7 +189,7 @@ def receive_messages(connection, alice_shared_key, ecies_type, signature_pub_key
         General exception handling to catch and handle unexpected errors
     """
     separator = b"||"
-    received_files_dir = "./ReceivedFiles/"
+    received_files_dir = "Files/ReceivedFiles/"
     os.makedirs(received_files_dir, exist_ok=True)
     while True:
         try:
@@ -424,8 +424,11 @@ def main():
 
     curve_name = input("Enter the ECDH curve name, must be the same for both peers (e.g., SECP384R1, SECP521R1): ")
     signature_name = input("Enter algorithm for digital signature (e.g., ECDSA, EdDSA): ")
-    ecies_type = input("Which encryption method should be used for ECIES? Type 'ChaCha' or 'AES': ")
+    ecies_type = input("Enter encryption method for ECIES (e.g., ChaCha, AES): ")
     logger.info("User selected: " + curve_name + ", " + signature_name + ", " + ecies_type)
+
+    password = input("Choose new key file password: ")
+    logger.info("User password for key file " + password)
 
     logger.info("Generating ECDH keys.")
     alice_priv_key, alice_pub_key = ECDH.generate_ecdh_keys(curve_name)
@@ -442,14 +445,15 @@ def main():
         logger.info("Connected to Bob.")
         print("Connected to Bob.")
 
-    logger.info("Exchanging ECDH keys")
+    logger.info("Exchanging ECDH keys.")
     encryptor, decryptor, bob_pub_key, alice_shared_key = exchange_keys(peer_socket, alice_priv_key, is_server)
     logger.debug("Exchanged ECDH keys.")
 
     # Generate signature keys (replace 'ECDSA' with your desired algorithm, e.g., 'EdDSA')
-    logger.info("Generating Alice's signature keys.")
-    signature_private_key, signature_public_key = key_generation(signature_name, 'alice_priv.pem', 'alice_pub.pem')
-    logger.debug("Generated Alice's signature keys.")
+    logger.info("Generating and encrypting Alice's signature keys.")
+    signature_private_key, signature_public_key = key_generation(signature_name, 'alice_priv.pem', 'alice_pub.pem',
+                                                                 password)
+    logger.debug("Generated and encrypted Alice's signature keys.")
 
     # Exchange signature public keys (assuming the exchange_keys function can be adjusted to handle this)
     logger.info("Exchanging signature keys.")

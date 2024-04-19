@@ -1,37 +1,43 @@
-2024-04-19 22:22:54 - INFO - User selected: SECP384R1, ECDSA, ChaCha
-2024-04-19 22:22:54 - INFO - Generating ECDH keys.
-2024-04-19 22:22:54 - DEBUG - Generated ECDH Alice private key and public key.
-2024-04-19 22:22:56 - ERROR - Failed to create server or accept connection.
+2024-04-19 22:54:36 - INFO - User selected: SECP384R1, ECDSA, ChaCha
+2024-04-19 22:54:39 - INFO - User password for key file asdf
+2024-04-19 22:54:39 - INFO - Generating ECDH keys.
+2024-04-19 22:54:39 - DEBUG - Generated ECDH Alice private key and public key.
+2024-04-19 22:54:41 - ERROR - Failed to create server or accept connection.
 Traceback (most recent call last):
   File "C:\Users\danie\OneDrive\Documents\GitHub\Elliptic-Curves-Cryptography-project\PeerToPeer\Alice.py", line 370, in attempt_connection
     peer_socket.connect(target)
 ConnectionRefusedError: [WinError 10061] No connection could be made because the target machine actively refused it
-2024-04-19 22:22:56 - INFO - Alice is waiting for a connection on port 8080.
-2024-04-19 22:22:56 - INFO - Connection established with Bob at ('127.0.0.1', 63301)
-2024-04-19 22:22:56 - INFO - Server created.
-2024-04-19 22:22:56 - INFO - Exchanging ECDH keys
-2024-04-19 22:22:56 - INFO - Alice connected as server for ECDH key exchange.
-2024-04-19 22:22:56 - DEBUG - Alice generated shared key: e0081d9ba44fcc50b6585bd76eac1f7e86acb3437415b71db0a1fc5fc2cc2146c3301cad3dd141af50cc075ee543adbe
-2024-04-19 22:22:56 - INFO - Alice received Bob's shared key.
-2024-04-19 22:22:56 - INFO - ECDH keys saved at: ../Keys/ECDH/Alice
-2024-04-19 22:22:56 - DEBUG - Generated new IV for AES encryption.
-2024-04-19 22:22:56 - INFO - Alice sends IV.
-2024-04-19 22:22:56 - DEBUG - Exchanged ECDH keys.
-2024-04-19 22:22:56 - INFO - Generating Alice's signature keys.
-2024-04-19 22:22:56 - DEBUG - Generated Alice's signature keys.
-2024-04-19 22:22:56 - INFO - Exchanging signature keys.
-2024-04-19 22:22:56 - INFO - Alice connected as server for signature exchange.
-2024-04-19 22:22:56 - DEBUG - Received peer signature public key.
-2024-04-19 22:22:56 - DEBUG - Exchanged signature keys.
-2024-04-19 22:22:56 - INFO - Starting receiver and sender threads.
-2024-04-19 22:22:56 - INFO - Started receiver and sender threads.
-2024-04-19 22:23:05 - INFO - Received encrypted message: 46494c453a3a746573742e7478747c7c546869732066696c652069732070726976617465
-2024-04-19 22:23:05 - INFO - Received and saved file: test.txt
-2024-04-19 22:23:11 - INFO - Received encrypted message: 3156d6192e225fe5ce2721227c7c17f29a6d22cdb0f7751baa4969788439a78362441e7c34b0a12cbed9167c7c30450221009fba89da355db32a449d4b61223f3c12002315cae3c485f28ffd71a49ac312bb022055ff7582e88cb27c1bacca454993a582677f468562df75500c64971b8f918109
-2024-04-19 22:23:11 - INFO - Decrypted and verified message: Bob: ahoooooj
-2024-04-19 22:23:20 - DEBUG - User input message: 
-2024-04-19 22:23:20 - DEBUG - Sent encrypted and signed message: b91fa576ee1a331448c944f3a835aebc1f833a4611b7a3
-2024-04-19 22:23:20 - DEBUG - User input message: ahoooooooooj
-2024-04-19 22:23:20 - DEBUG - Sent encrypted and signed message: 4f6c3c70eedcfc04125fc4ca9dd407fea4fef1840231c535e185b38bd6d2716fa9d43b
-2024-04-19 22:23:26 - DEBUG - User input message: quit
-2024-04-19 22:23:26 - INFO - User initiated quit.
+2024-04-19 22:54:41 - INFO - Alice is waiting for a connection on port 8080.
+2024-04-19 22:54:57 - INFO - Connection established with Bob at ('127.0.0.1', 63927)
+2024-04-19 22:54:57 - INFO - Server created.
+2024-04-19 22:54:57 - INFO - Exchanging ECDH keys.
+2024-04-19 22:54:57 - INFO - Alice connected as server for ECDH key exchange.
+2024-04-19 22:54:57 - DEBUG - Alice generated shared key: 89b3b869c5bba1aeb5c57aafc0ec16912254988ddfdb3c889b2fbad48afa90493b3031b0790d3e01cfe8d9d4b371865f
+2024-04-19 22:54:57 - INFO - Alice received Bob's shared key.
+2024-04-19 22:54:57 - INFO - ECDH keys saved at: ../Keys/ECDH/Alice
+2024-04-19 22:54:57 - DEBUG - Generated new IV for AES encryption.
+2024-04-19 22:54:57 - INFO - Alice sends IV.
+2024-04-19 22:54:57 - DEBUG - Exchanged ECDH keys.
+2024-04-19 22:54:57 - INFO - Generating and encrypting Alice's signature keys.
+2024-04-19 22:54:57 - DEBUG - Generated and encrypted Alice's signature keys.
+2024-04-19 22:54:57 - INFO - Exchanging signature keys.
+2024-04-19 22:54:57 - INFO - Alice connected as server for signature exchange.
+2024-04-19 22:54:57 - DEBUG - Received peer signature public key.
+2024-04-19 22:54:57 - DEBUG - Exchanged signature keys.
+2024-04-19 22:54:57 - INFO - Starting receiver and sender threads.
+2024-04-19 22:54:57 - INFO - Started receiver and sender threads.
+2024-04-19 22:55:05 - INFO - Received encrypted message: a07ecad5ab4189622502158d7c7c444669d4a44cba04ed31b59a513bf58239c5189935e7feeb4460db64037c7c304402205ad72f638c6a2511e184f294ea575f9eea2ab6e5ea5a47332c4f27071809c0580220791db632c4011440d15276f293e8525bd81b0715f58e3fff2ffebee2398d8ee6
+2024-04-19 22:55:05 - INFO - Decrypted and verified message: Bob: test.txt
+2024-04-19 22:55:23 - DEBUG - User input message: sendFile
+2024-04-19 22:55:23 - INFO - User wants to send file
+2024-04-19 22:55:28 - INFO - File path: ./Files/FilesToSend/test.txt
+2024-04-19 22:55:28 - INFO - Sent file: test.txt
+2024-04-19 22:55:33 - DEBUG - User input message: sendFile
+2024-04-19 22:55:33 - INFO - User wants to send file
+2024-04-19 22:55:36 - INFO - File path: ./Files/FilesToSend/test.txt
+2024-04-19 22:55:36 - INFO - Sent file: test.txt
+2024-04-19 22:55:42 - DEBUG - User input message: aaaaaaaaaaaaaasSSSSSSSSSSSSSSSSSSSSSS
+2024-04-19 22:55:42 - DEBUG - Sent encrypted and signed message: 94fe148b96918c4a197199cc4b07a0e95dd8e301f9d7f86b0efe2bbb2367a0f1ce1cfc3e17b97fbedc0f7e3e51b3d56e94df9468d7baa4b3a277b3e8
+2024-04-19 22:55:50 - INFO - Received encrypted message: 9cbd3679c0a90444301c2b127c7caf3f709acbb91d5b6d997e0946b0c2f8e800005f60e7a38930e42310aa248f2fbf7209111d2c0184f4835326c2bd9185ef204295bb56691b9c3eb882317f6b495a08e8f277e6e4ff1d9db10c1d3051d568d4fe64337fb8ea9334720e43ca921d20516e0240e27c7c304502210088f1d069c45f5f4c046584d41daf5bf97193100e5da4f3152e739b6ec3ecebc002206237e6b813264360c24ce9cd9d8a8039df0342c0d3c4b096f46c2f3490ab1781
+2024-04-19 22:55:50 - INFO - Decrypted and verified message: Bob: aaaaaaaaaaaaaaaaaSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS
+2024-04-19 22:55:53 - INFO - Received encrypted message: 71756974
