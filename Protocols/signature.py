@@ -1,9 +1,30 @@
+"""
+Digital Signature Utility Module.
+
+This module provides essential functionalities to generate, sign, and verify digital signatures using ECDSA and EdDSA algorithms. It supports key generation, saving keys in PEM format, signing messages, and verifying the authenticity of signatures.
+
+Functions:
+    key_generation:       Generates and saves a pair of private and public keys for digital signatures.
+    sign_message:         Signs a given message using a private key and specified signature algorithm.
+    verify_signature:     Verifies a digital signature using the corresponding public key.
+
+File author:
+    Jan Hejna
+
+Date:
+    19.4.2024
+
+Dependencies:
+    This module requires the `cryptography` library and is designed to work with ECDSA and EdDSA keys within a
+
+"""
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519
 from cryptography.hazmat.backends import default_backend
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
 import os
+
 
 
 def key_generation(signature_name, sk_pem_name, vk_pem_name):
