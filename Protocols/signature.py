@@ -7,6 +7,20 @@ import os
 
 
 def key_generation(signature_name, sk_pem_name, vk_pem_name):
+    """
+       Generates a pair of private and public keys, saves them as PEM files.
+
+       Parameters:
+           signature_name:  The type of signature ('ECDSA' or 'EdDSA').
+           sk_pem_name:     Filename for the private key PEM file.
+           vk_pem_name:     Filename for the public key PEM file.
+
+       Raises:
+           ValueError: If an unsupported key type is provided.
+
+       Returns:
+           private_key, public_key: A tuple containing the private key and public key objects.
+       """
     base_path = "../Keys/Signature/" + signature_name
     os.makedirs(base_path, exist_ok=True)
 
@@ -48,6 +62,20 @@ def key_generation(signature_name, sk_pem_name, vk_pem_name):
 
 
 def sign_message(private_key, message, signature_name):
+    """
+        Signs a message with a specified private key.
+
+        Parameters:
+            private_key:    The private key object for signing.
+            message:        The message data to be signed.
+            signature_name: The type of signature to create ('ECDSA', 'EdDSA').
+
+        Raises:
+            ValueError: If an unsupported signature type is provided.
+
+        Returns:
+            signature: The digital signature.
+        """
     if signature_name == "ECDSA":
         # ECDSA requires specifying the hash algorithm.
         signature = private_key.sign(
@@ -64,6 +92,18 @@ def sign_message(private_key, message, signature_name):
 
 
 def verify_signature(public_key, message, signature, signature_name):
+    """
+        Verifies a digital signature against a message using the corresponding public key.
+
+        Parameters:
+            public_key:     The public key for verification.
+            message:        The message that was originally signed.
+            signature:      The signature to verify.
+            signature_name: The type of signature used ('ECDSA', 'EdDSA').
+
+        Returns:
+            bool: True if the signature is valid, False otherwise.
+        """
     try:
         if signature_name == "ECDSA":
             public_key.verify(
