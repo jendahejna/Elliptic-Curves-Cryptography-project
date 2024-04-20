@@ -5,17 +5,18 @@ Functions:
     generate_ecdh_keys:     Generates private and public keys for this peer.
     approve_ecdh_keys_demo: Demonstrates generation of shared keys for Alice and Bob and test if they are same.
     shared_ecdh_key:        Generates shared key for this peer.
+    serialize_pub_key:      Serializes the public key for transmission.
     save_ecdh_keys:         Saves public key of peer, and it's shared key.
     main:                   Demonstrates created functions and their implementation.
 
-File author:
+Author:
     Daniel Kluka, 203251
 
 Version:
-    3.0
+    3.1
 
 Date:
-    17.4.2024
+    20.4.2024
 """
 import os
 from cryptography.hazmat.backends import default_backend

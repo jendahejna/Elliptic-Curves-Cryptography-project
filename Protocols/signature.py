@@ -15,8 +15,7 @@ Date:
     19.4.2024
 
 Dependencies:
-    This module requires the `cryptography` library and is designed to work with ECDSA and EdDSA keys within a
-
+    This module requires the `cryptography` library and is designed to work with ECDSA and EdDSA keys.
 """
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa

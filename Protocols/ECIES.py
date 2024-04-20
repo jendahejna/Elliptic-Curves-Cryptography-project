@@ -103,4 +103,3 @@ def encryption_chacha(chacha_key, hmac_key, message):
     nonce, ciphertext = encrypt_message_chacha(chacha_key, message)
     mac = create_hmac(hmac_key, ciphertext)
     return nonce, ciphertext, mac
-

@@ -2,32 +2,33 @@
 Alice peer file.
 
 Functions:
-    serialize_public_key:       Serializes the public key for transmission.
     derive_key:                 Derives a key for AES encryption from the shared key of this peer.
     create_encryptor_decryptor: Creates encryptor and decryptor objects using the derived key and an IV.
-    sign_message:               Signs a message using ECDSA.
-    verify_signature:           Verifies a message signature using ECDSA.
-    send_messages:              Sends encrypted and signed messages from the user over a given connection.
-    receive_messages:           Receives, decrypts, and verifies encrypted messages over a given connection.
-    exchange_keys:              Exchanges public keys and establishes encryption.
+    send_messages:              Sends encrypted and signed messages or files from the user over a given connection.
+    receive_messages:           Receives, decrypts, and verifies encrypted messages or files over a given connection.
+    exchange_keys:              Exchanges ECDH public keys and establishes encryption.
+    exchange_signature_keys:    Exchange signature public keys between two communication parties.
     attempt_connection:         Attempts to establish a connection to a specified target using the given socket.
     create_server:              Creates a server socket, binds it to a local address, listens for incoming connections.
     main:                       Demonstrates created functions and their implementation.
 
-File authors:
+Authors:
     Jan Hejna, 221545
     Daniel Kluka, 203251
     Jan Rezek, 227374
     Michal Rosa, 221012
 
-Documentation author:
-    Daniel Kluka, 203251
+Documentation:
+    Documentation is auto-generated and can be found in Documentation folders.
+    Documentation authors:
+        Daniel Kluka, 203251
+        Michal Rosa, 221012
 
 Version:
-    3.0
+    5.0.1
 
 Date:
-    18.4.2024
+    20.4.2024
 """
 import socket
 import threading
@@ -43,11 +44,19 @@ from Protocols.ECIES import derive_encryption_parameters, encryption_chacha, enc
     decrypt_message_chacha
 import logging
 
-# Configure logging
+
+"""
+Logger.
+
+Function: 
+    Logs and saves important actions and informations during peer to peer communication.
+
+Author: 
+    Daniel Kluka, 203251
+"""
 log_directory = "./Logs"
 log_filename = "alice_peer.log"
 
-# Vytvorenie priečinka, ak neexistuje
 if not os.path.exists(log_directory):
     os.makedirs(log_directory)
 
@@ -67,6 +76,9 @@ def derive_key(shared_key):
 
     Args:
         shared_key: Shared key of this peer.
+
+    Author:
+        Jan Rezek, 227374
     """
     return HKDF(
         algorithm=hashes.SHA256(),
@@ -89,6 +101,10 @@ def create_encryptor_decryptor(key, iv=None):
         encryptor:  Data encryptor object.
         decryptor:  Data decryptor object.
         iv:         Initialization vector.
+
+    Authors:
+        Daniel Kluka, 203251
+        Jan Rezek, 227374
     """
     if iv is None:
         iv = os.urandom(16)
@@ -99,7 +115,7 @@ def create_encryptor_decryptor(key, iv=None):
 
 def send_messages(connection, peer_name, alice_shared_key, ecies_type, signature_priv_key, signature_name):
     """
-    Sends encrypted and signed messages from the user over a given connection.
+    Sends encrypted and signed messages or files from the user over a given connection.
 
     Args:
         connection:         The communication channel used to send encrypted messages.
@@ -117,6 +133,12 @@ def send_messages(connection, peer_name, alice_shared_key, ecies_type, signature
     Exceptions:
         The function will catch and print any exceptions raised during the message
         sending process, mainly focusing on connection issues.
+
+    Authors:
+        Jan Hejna, 221545
+        Daniel Kluka, 203251
+        Jan Rezek, 227374
+        Michal Rosa, 221012
     """
     separator = b"||"
     files_to_send_dir = "./Files/FilesToSend/"
@@ -151,8 +173,10 @@ def send_messages(connection, peer_name, alice_shared_key, ecies_type, signature
 
         # Encode the full message
         full_message = f"{peer_name}: {command}".encode('utf-8')
+
         # Sign the message
         signature = sign_message(signature_priv_key, full_message, signature_name)
+
         # Encrypt the entire message including the signature
         if ecies_type == "ChaCha":
             ecies_key, hmac_key = derive_encryption_parameters(alice_shared_key)
@@ -175,7 +199,7 @@ def send_messages(connection, peer_name, alice_shared_key, ecies_type, signature
 
 def receive_messages(connection, alice_shared_key, ecies_type, signature_pub_key, signature_name):
     """
-    Receives, decrypts, and verifies encrypted messages over a given connection.
+    Receives, decrypts, and verifies encrypted messages or files over a given connection.
 
     Parameters:
         connection:         The communication channel used to receive encrypted messages.
@@ -186,7 +210,13 @@ def receive_messages(connection, alice_shared_key, ecies_type, signature_pub_key
         signature_name:     Specifies the type of signature scheme (ECDSA, EdDSA)
 
     Exceptions:
-        General exception handling to catch and handle unexpected errors
+        General exception handling to catch and handle unexpected errors.
+
+    Authors:
+        Jan Hejna, 221545
+        Daniel Kluka, 203251
+        Jan Rezek, 227374
+        Michal Rosa, 221012
     """
     separator = b"||"
     received_files_dir = "Files/ReceivedFiles/"
@@ -199,7 +229,6 @@ def receive_messages(connection, alice_shared_key, ecies_type, signature_pub_key
 
             parts = encrypted_message.split(separator)
             if len(parts) == 3:
-                # Regular messages with format: nonce_iv||ciphertext||signature
                 nonce_iv, ciphertext, signature = parts
 
                 # Decrypt the message
@@ -254,6 +283,10 @@ def exchange_keys(connection, alice_priv_key, is_server):
         This function handles connection and serialization errors internally, primarily
         during the key exchange or IV management phases. Any exceptions will cause
         an appropriate error message to be printed and will terminate the execution.
+
+    Author:
+        Daniel Kluka, 203251
+        Jan Rezek, 227374
     """
     alice_pub_key = alice_priv_key.public_key()
     public_key_bytes = ECDH.serialize_pub_key(alice_pub_key)
@@ -273,16 +306,18 @@ def exchange_keys(connection, alice_priv_key, is_server):
     logger.debug(f"Alice generated shared key: {alice_shared_key.hex()}")
 
     # Serialize the shared key for transmission
-    shared_key_bytes = alice_shared_key.hex().encode('utf-8')  # Assuming shared_key is bytes-compatible
+    shared_key_bytes = alice_shared_key.hex().encode('utf-8')
 
     # Exchange the shared key
     if is_server:
-        connection.send(shared_key_bytes)  # Server sends the shared key
+        # Server sends the shared key
+        connection.send(shared_key_bytes)
         peer_shared_key_bytes = connection.recv(1024)
         logger.info("Alice received Bob's shared key.")
     else:
         peer_shared_key_bytes = connection.recv(1024)
-        connection.send(shared_key_bytes)  # Client sends the shared key
+        # Client sends the shared key
+        connection.send(shared_key_bytes)
         logger.info("Alice sends shared key to Bob.")
 
     # Confirm that both shared keys match (optional step for additional security)
@@ -299,12 +334,15 @@ def exchange_keys(connection, alice_priv_key, is_server):
     encryptor, decryptor, iv = create_encryptor_decryptor(key)
 
     if is_server:
-        connection.send(iv)  # Server sends IV
+        # Server sends IV
+        connection.send(iv)
         logger.info("Alice sends IV.")
     else:
-        iv = connection.recv(16)  # Client receives IV
+        # Client receives IV
+        iv = connection.recv(16)
         logger.debug("Alice receives and uses IV.")
-        encryptor, decryptor, _ = create_encryptor_decryptor(key, iv)  # Use existing IV
+        # Use existing IV
+        encryptor, decryptor, _ = create_encryptor_decryptor(key, iv)
     return encryptor, decryptor, bob_pub_key, alice_shared_key
 
 
@@ -327,8 +365,11 @@ def exchange_signature_keys(connection, local_signature_pub_key, is_server):
     Notes:
         Keys are transmitted in PEM format and deserialized upon receipt to maintain cryptographic integrity and
         operability.
+
+    Authors:
+        Jan Hejna, 221545
+        Daniel Kluka, 203251
     """
-    # Ensure the public key is not already bytes and is the correct key object
     if not isinstance(local_signature_pub_key, (ec.EllipticCurvePublicKey, ed25519.Ed25519PublicKey)):
         logger.error("Provided public key is not a valid public key object.", exc_info=True)
         raise TypeError("Provided public key is not a valid public key object.")
@@ -365,6 +406,10 @@ def attempt_connection(peer_socket, target=('localhost', 8080)):
 
     Exceptions:
         This function catches this specific exception to return False.
+
+    Authors:
+        Daniel Kluka, 203251
+        Jan Rezek, 227374
     """
     try:
         peer_socket.connect(target)
@@ -384,6 +429,10 @@ def create_server():
 
     Exceptions:
         Socket-related exceptions can occur during socket creation, binding, listening, or accepting connections.
+
+    Authors:
+        Daniel Kluka, 203251
+        Jan Rezek, 227374
     """
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -407,15 +456,27 @@ def main():
     Steps:
         1. Sets up Alice's identity and creates a socket for network communication.
         2. Prompts the user to enter the name of the elliptic curve for key generation.
-        3. Attempts to establish a connection with Bob:
+        3. Prompts the user to enter the name of the algorithm for digital signature.
+        4. Prompts the user to enter the name encryption method for ECIES.
+        5. Prompts the user to enter the new file password for file encryption.
+        6. Attempts to establish a connection with Bob:
             - If a connection is not initially established, it assumes the role of server and waits for a client.
             - If connected, it assumes the role of client.
-        4. Exchanges public keys and establishes encryption parameters including encryptor and decryptor.
-        5. Starts separate threads for sending and receiving encrypted messages.
-        6. Waits for both threads to finish, which occurs when the chat session ends.
-        7. Closes the network socket and prints a message indicating the end of the chat.
+        7. Exchanges public keys and establishes encryption parameters including encryptor and decryptor.
+        8. Starts separate threads for sending and receiving encrypted messages or files.
+        9. Waits for both threads to finish, which occurs when the chat session ends.
+        10. Closes the network socket and prints a message indicating the end of the chat.
+        11. Saves log that was created during peer to peer communication.
 
     The user is responsible for specifying the correct elliptic curve name that must be agreed upon by both peers.
+    The user is also responsible for choosing algorithm of digital signature, encryption method and file password,
+    which must be agreed on the same way.
+
+    Authors:
+        Jan Hejna, 221545
+        Daniel Kluka, 203251
+        Jan Rezek, 227374
+        Michal Rosa, 221012
     """
     print("Peer name: Alice")
     peer_name = "Alice"
@@ -428,7 +489,7 @@ def main():
     logger.info("User selected: " + curve_name + ", " + signature_name + ", " + ecies_type)
 
     password = input("Choose new key file password: ")
-    logger.info("User password for key file " + password)
+    logger.info("User password for key file: " + password)
 
     logger.info("Generating ECDH keys.")
     alice_priv_key, alice_pub_key = ECDH.generate_ecdh_keys(curve_name)
@@ -449,18 +510,15 @@ def main():
     encryptor, decryptor, bob_pub_key, alice_shared_key = exchange_keys(peer_socket, alice_priv_key, is_server)
     logger.debug("Exchanged ECDH keys.")
 
-    # Generate signature keys (replace 'ECDSA' with your desired algorithm, e.g., 'EdDSA')
     logger.info("Generating and encrypting Alice's signature keys.")
     signature_private_key, signature_public_key = key_generation(signature_name, 'alice_priv.pem', 'alice_pub.pem',
                                                                  password)
     logger.debug("Generated and encrypted Alice's signature keys.")
 
-    # Exchange signature public keys (assuming the exchange_keys function can be adjusted to handle this)
     logger.info("Exchanging signature keys.")
     peer_signature_pub_key = exchange_signature_keys(peer_socket, signature_public_key, is_server)
     logger.debug("Exchanged signature keys.")
 
-    # Starting threads for sending and receiving messages
     logger.info("Starting receiver and sender threads.")
     receiver_thread = threading.Thread(target=receive_messages,
                                        args=(peer_socket, alice_shared_key, ecies_type, peer_signature_pub_key,
