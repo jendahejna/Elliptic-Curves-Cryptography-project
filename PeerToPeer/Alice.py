@@ -19,7 +19,7 @@ Authors:
     Michal Rosa, 221012
 
 Documentation:
-    Documentation is auto-generated and can be found in Documentation folders.
+    Documentation is auto-generated and can be found in Documentation folders in index.html.
     Documentation authors:
         Daniel Kluka, 203251
         Michal Rosa, 221012

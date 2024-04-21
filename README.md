@@ -18,6 +18,8 @@ Progress of whole communication by each peer is stored at ```/PeerToPeer/Logs```
 
 Whole documentation is generated automatically and stored at ```index.html```.
 
+https://github.com/jendahejna/Elliptic-Curves-Cryptography-project.git
+
 # Requirements
 1. Python 3.11+
 2. Libraries specified in Requirements file
